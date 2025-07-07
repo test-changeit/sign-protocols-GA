@@ -44,8 +44,6 @@ export class MultiSigHandler extends Communicator {
     this.multiSigUtilsInstance = config.multiSigUtilsInstance;
     this.ergoGuardPks = [];
     this.guardDetection = config.guardDetection;
-
-    // Ergo keys will be set later via handlePublicKeysChange()
   }
 
   /**
@@ -56,16 +54,14 @@ export class MultiSigHandler extends Communicator {
   };
 
   /**
-   * getting all peers with their IDs (if they are active, otherwise undefined)
+   * getting all peers with their IDs (if they are active, otherwise undefined) alongside their Ergo public keys
    */
   peersWithIds = async (): Promise<Signer[]> => {
     const activeGuards = await this.guardDetection.activeGuards();
-    const commPkToPeerId: Record<string, string> = {};
-    activeGuards.forEach((g) => (commPkToPeerId[g.publicKey] = g.peerId));
 
     return this.ergoGuardPks.map((ergoPk, index) => {
-      const commPk = this.guardPks[index];
-      return { pub: ergoPk, id: commPkToPeerId[commPk] };
+      const commPk = activeGuards.find((g) => g.index === index);
+      return { pub: ergoPk, id: commPk?.peerId };
     });
   };
 
@@ -83,8 +79,8 @@ export class MultiSigHandler extends Communicator {
   public getCurrentTurnId = async (): Promise<string | undefined> => {
     try {
       const activeGuards = await this.guardDetection.activeGuards();
-      const commPk = this.guardPks[this.getCurrentTurnInd()];
-      const guard = activeGuards.find((g) => g.publicKey === commPk);
+      const turnIndex = this.getCurrentTurnInd();
+      const guard = activeGuards.find((g) => g.index === turnIndex);
       return guard?.peerId;
     } catch (e) {
       return undefined;
