@@ -115,6 +115,7 @@ interface ErgoMultiSigConfig {
   submit: (msg: string, peers: Array<string>) => unknown;
   guardDetection: GuardDetection;
   commGuardsPk: Array<string>;
+  ergoGuardPks?: Array<string>;
 }
 
 export {

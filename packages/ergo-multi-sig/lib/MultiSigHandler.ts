@@ -14,7 +14,7 @@ import { turnTime } from './const';
 import { Semaphore } from 'await-semaphore';
 import { MultiSigUtils } from './MultiSigUtils';
 import { AbstractLogger, DummyLogger } from '@rosen-bridge/abstract-logger';
-import { ActiveGuard, GuardDetection } from '@rosen-bridge/detection';
+import { GuardDetection } from '@rosen-bridge/detection';
 import { Communicator } from '@rosen-bridge/communication';
 
 export class MultiSigHandler extends Communicator {
@@ -42,7 +42,7 @@ export class MultiSigHandler extends Communicator {
     this.secret = Uint8Array.from(Buffer.from(config.secretHex, 'hex'));
     this.txSignTimeout = config.txSignTimeout;
     this.multiSigUtilsInstance = config.multiSigUtilsInstance;
-    this.ergoGuardPks = [];
+    this.ergoGuardPks = config.ergoGuardPks ?? [];
     this.guardDetection = config.guardDetection;
   }
 
@@ -256,6 +256,7 @@ export class MultiSigHandler extends Communicator {
    * @param sender sender for this commitment
    * @param payload user commitment
    * @param signature signature for this commitment message
+   * @param index index of the guard that sent the commitment
    */
   handleCommitment = async (
     sender: string,
@@ -271,11 +272,7 @@ export class MultiSigHandler extends Communicator {
     }
 
     if (payload.txId) {
-      const pub = this.ergoPkByCommIndex(index);
-      if (!pub) {
-        this.logger.error(`Failed to handle commitment: ${pub}`);
-        return;
-      }
+      const pub = this.ergoGuardPks[index];
 
       const { transaction, release } = await this.getQueuedTransaction(
         payload.txId,
@@ -410,6 +407,7 @@ export class MultiSigHandler extends Communicator {
    * all peers partially sign the transaction and send the proof to the peer with the correct turn
    * @param sender the peer who initiated the sign
    * @param payload initiate sign payload
+   * @param index index of the guard that sent the initiate sign
    */
   initiateSign = async (
     sender: string,
@@ -509,6 +507,7 @@ export class MultiSigHandler extends Communicator {
    * will send the signed transaction to all peers
    * @param sender sender of the proof
    * @param payload proof payload
+   * @param index index of the guard that sent the proof
    */
   handleSign = async (
     sender: string,
@@ -532,11 +531,7 @@ export class MultiSigHandler extends Communicator {
       this.logger.debug(
         `Received proof from [${sender}] for tx [${payload.txId}]...`,
       );
-      const pub = this.ergoPkByCommIndex(index);
-      if (!pub) {
-        this.logger.error(`Failed to handle sign: ${pub}`);
-        return;
-      }
+      const pub = this.ergoGuardPks[index];
 
       transaction.signs[pub] = payload.proof;
 
@@ -771,35 +766,9 @@ export class MultiSigHandler extends Communicator {
   };
 
   /**
-   * Allows setting (or updating) the Ergo – blockchain – public keys after
-   * construction time. Re-builds the key maps so that subsequent logic can
-   * resolve peers correctly.
+   * Allows setting (or updating) the Ergo blockchain public keys
    */
   public handlePublicKeysChange = (ergoPks: Array<string>): void => {
     this.ergoGuardPks = [...ergoPks];
-  };
-
-  /**
-   * Helper that converts a communication-index (index inside `guardPks`)
-   * to the corresponding Ergo public key, if any.
-   */
-  private commIndexToErgoPk = (index: number): string | undefined => {
-    return this.ergoGuardPks[index];
-  };
-
-  /**
-   * Returns the Ergo public key that corresponds to a given communication
-   * index. Throws an error if no mapping exists - this indicates a programming
-   * error where Ergo keys haven't been properly set.
-   */
-  private ergoPkByCommIndex = (index: number): string | undefined => {
-    const pk = this.commIndexToErgoPk(index);
-    if (!pk) {
-      this.logger.error(
-        `Could not resolve Ergo public key for communication index ${index}. Make sure setErgoGuardPks() is called.`,
-      );
-      return undefined;
-    }
-    return pk;
   };
 }
