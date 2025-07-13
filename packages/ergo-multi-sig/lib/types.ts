@@ -114,7 +114,8 @@ interface ErgoMultiSigConfig {
   multiSigFirstSignDelay?: number;
   submit: (msg: string, peers: Array<string>) => unknown;
   guardDetection: GuardDetection;
-  guardsPk: Array<string>;
+  commGuardsPk: Array<string>;
+  ergoGuardPks?: Array<string>;
 }
 
 export {

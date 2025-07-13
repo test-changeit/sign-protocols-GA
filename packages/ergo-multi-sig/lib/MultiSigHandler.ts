@@ -14,7 +14,7 @@ import { turnTime } from './const';
 import { Semaphore } from 'await-semaphore';
 import { MultiSigUtils } from './MultiSigUtils';
 import { AbstractLogger, DummyLogger } from '@rosen-bridge/abstract-logger';
-import { ActiveGuard, GuardDetection } from '@rosen-bridge/detection';
+import { GuardDetection } from '@rosen-bridge/detection';
 import { Communicator } from '@rosen-bridge/communication';
 
 export class MultiSigHandler extends Communicator {
@@ -27,22 +27,22 @@ export class MultiSigHandler extends Communicator {
   private semaphore = new Semaphore(1);
   private guardDetection: GuardDetection;
   private publicKey?: string;
-  private guardsPk: Array<string>;
+  private ergoGuardPks: Array<string>;
 
   constructor(config: ErgoMultiSigConfig) {
     super(
       config.logger ? config.logger : new DummyLogger(),
       config.messageEnc,
       config.submit,
-      config.guardsPk,
+      config.commGuardsPk,
     );
 
     this.logger = config.logger ? config.logger : new DummyLogger();
     this.transactions = new Map<string, TxQueued>();
-    this.secret = Buffer.from(config.secretHex, 'hex');
+    this.secret = Uint8Array.from(Buffer.from(config.secretHex, 'hex'));
     this.txSignTimeout = config.txSignTimeout;
     this.multiSigUtilsInstance = config.multiSigUtilsInstance;
-    this.guardsPk = config.guardsPk;
+    this.ergoGuardPks = config.ergoGuardPks ?? [];
     this.guardDetection = config.guardDetection;
   }
 
@@ -50,17 +50,18 @@ export class MultiSigHandler extends Communicator {
    * getting all peers without initializing IDs
    */
   peers = (): Signer[] => {
-    return this.guardsPk.map((pub) => ({ pub }));
+    return this.ergoGuardPks.map((pub) => ({ pub }));
   };
 
   /**
-   * getting all peers with their IDs (if they are active, otherwise undefined)
+   * getting all peers with their IDs (if they are active, otherwise undefined) alongside their Ergo public keys
    */
   peersWithIds = async (): Promise<Signer[]> => {
     const activeGuards = await this.guardDetection.activeGuards();
-    return this.guardsPk.map((pub) => {
-      const guard = activeGuards.find((guard) => guard.publicKey === pub);
-      return { pub, id: guard?.peerId };
+
+    return this.ergoGuardPks.map((ergoPk, index) => {
+      const commPk = activeGuards.find((g) => g.index === index);
+      return { pub: ergoPk, id: commPk?.peerId };
     });
   };
 
@@ -69,7 +70,7 @@ export class MultiSigHandler extends Communicator {
    */
   public getCurrentTurnInd = (): number => {
     // every turnTime the turn changes to the next guard
-    return Math.floor(new Date().getTime() / turnTime) % this.peers().length;
+    return Math.floor(new Date().getTime() / turnTime) % this.guardPks.length;
   };
 
   /**
@@ -78,10 +79,9 @@ export class MultiSigHandler extends Communicator {
   public getCurrentTurnId = async (): Promise<string | undefined> => {
     try {
       const activeGuards = await this.guardDetection.activeGuards();
-      const currentTurnPk = this.peers()[this.getCurrentTurnInd()].pub;
-      return activeGuards.filter(
-        (guard: ActiveGuard) => guard.publicKey === currentTurnPk,
-      )[0].peerId;
+      const turnIndex = this.getCurrentTurnInd();
+      const guard = activeGuards.find((g) => g.index === turnIndex);
+      return guard?.peerId;
     } catch (e) {
       return undefined;
     }
@@ -91,7 +91,8 @@ export class MultiSigHandler extends Communicator {
    * checks if it's this peer's turn to sign
    */
   public isMyTurn = async (): Promise<boolean> => {
-    return (await this.getIndex()) === this.getCurrentTurnInd();
+    const myCommIndex = await this.getIndex();
+    return myCommIndex === this.getCurrentTurnInd();
   };
 
   /**
@@ -255,6 +256,7 @@ export class MultiSigHandler extends Communicator {
    * @param sender sender for this commitment
    * @param payload user commitment
    * @param signature signature for this commitment message
+   * @param index index of the guard that sent the commitment
    */
   handleCommitment = async (
     sender: string,
@@ -270,7 +272,8 @@ export class MultiSigHandler extends Communicator {
     }
 
     if (payload.txId) {
-      const pub = this.peers()[index].pub;
+      const pub = this.ergoGuardPks[index];
+
       const { transaction, release } = await this.getQueuedTransaction(
         payload.txId,
       );
@@ -404,6 +407,7 @@ export class MultiSigHandler extends Communicator {
    * all peers partially sign the transaction and send the proof to the peer with the correct turn
    * @param sender the peer who initiated the sign
    * @param payload initiate sign payload
+   * @param index index of the guard that sent the initiate sign
    */
   initiateSign = async (
     sender: string,
@@ -503,6 +507,7 @@ export class MultiSigHandler extends Communicator {
    * will send the signed transaction to all peers
    * @param sender sender of the proof
    * @param payload proof payload
+   * @param index index of the guard that sent the proof
    */
   handleSign = async (
     sender: string,
@@ -526,7 +531,8 @@ export class MultiSigHandler extends Communicator {
       this.logger.debug(
         `Received proof from [${sender}] for tx [${payload.txId}]...`,
       );
-      const pub = this.peers()[index].pub;
+      const pub = this.ergoGuardPks[index];
+
       transaction.signs[pub] = payload.proof;
 
       if (Object.keys(transaction.signs).length >= transaction.requiredSigner) {
@@ -598,7 +604,7 @@ export class MultiSigHandler extends Communicator {
   handleSignedTx = async (txBytes: string): Promise<void> => {
     try {
       const tx = wasm.Transaction.sigma_parse_bytes(
-        Buffer.from(txBytes, 'base64'),
+        Uint8Array.from(Buffer.from(txBytes, 'base64')),
       );
       const { transaction, release } = await this.getQueuedTransaction(
         tx.id().to_str(),
@@ -757,5 +763,12 @@ export class MultiSigHandler extends Communicator {
         break;
       }
     }
+  };
+
+  /**
+   * Allows setting (or updating) the Ergo blockchain public keys
+   */
+  public handlePublicKeysChange = (ergoPks: Array<string>): void => {
+    this.ergoGuardPks = [...ergoPks];
   };
 }
