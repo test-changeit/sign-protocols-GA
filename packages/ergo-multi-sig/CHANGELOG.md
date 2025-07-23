@@ -1,5 +1,11 @@
 # @rosen-bridge/ergo-multi-sig
 
+## 1.0.2
+
+### Patch Changes
+
+- Fix key mixing of TSS and Ergo
+
 ## 1.0.1
 
 ### Patch Changes
