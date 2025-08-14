@@ -1,9 +1,9 @@
 {
   "name": "@rosen-bridge/encryption",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "unify encryption interface",
   "repository": "https://github.com/rosen-bridge/sign-protocols",
-  "license": "GPL-3.0",
+  "license": "MIT",
   "author": "Rosen Team",
   "type": "module",
   "main": "dist/index.js",

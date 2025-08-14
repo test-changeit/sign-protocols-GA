@@ -1,9 +1,9 @@
 {
   "name": "@rosen-bridge/communication",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "abstractly manage communication between endpoints",
   "repository": "https://github.com/rosen-bridge/sign-protocols",
-  "license": "GPL-3.0",
+  "license": "MIT",
   "author": "Rosen Team",
   "type": "module",
   "main": "dist/index.js",
@@ -34,7 +34,7 @@
   },
   "dependencies": {
     "@rosen-bridge/abstract-logger": "^2.0.1",
-    "@rosen-bridge/encryption": "^0.1.1"
+    "@rosen-bridge/encryption": "^0.1.2"
   },
   "engines": {
     "node": ">=20.11.0"
