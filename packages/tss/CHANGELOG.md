@@ -1,5 +1,15 @@
 # @rosen-bridge/tss
 
+## 4.1.2
+
+### Patch Changes
+
+- Update license to MIT
+- Updated dependencies
+  - @rosen-bridge/communication@1.0.2
+  - @rosen-bridge/encryption@0.1.2
+  - @rosen-bridge/detection@1.0.2
+
 ## 4.1.1
 
 ### Patch Changes
