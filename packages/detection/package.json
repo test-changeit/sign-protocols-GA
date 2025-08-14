@@ -3,7 +3,7 @@
   "version": "1.0.1",
   "description": "find available endpoints in private network",
   "repository": "https://github.com/rosen-bridge/sign-protocols",
-  "license": "GPL-3.0",
+  "license": "MIT",
   "author": "Rosen Team",
   "type": "module",
   "main": "dist/index.js",

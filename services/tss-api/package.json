@@ -3,7 +3,7 @@
   "version": "2.1.0",
   "description": "a service for Threshold Signature Scheme, for ECDSA and EDDSA",
   "repository": "",
-  "license": "GPL-3.0",
+  "license": "MIT",
   "author": "Rosen Team",
   "type": "module",
   "scripts": {

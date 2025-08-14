@@ -19,7 +19,7 @@
     "dist"
   ],
   "author": "Rosen Team",
-  "license": "GPL-3.0",
+  "license": "MIT",
   "devDependencies": {
     "@types/node": "^20.11.9",
     "@types/secp256k1": "^4.0.3",
