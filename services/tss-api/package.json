@@ -1,6 +1,6 @@
 {
   "name": "tss-api",
-  "version": "2.1.1",
+  "version": "2.1.0",
   "description": "a service for Threshold Signature Scheme, for ECDSA and EDDSA",
   "repository": "",
   "license": "MIT",
