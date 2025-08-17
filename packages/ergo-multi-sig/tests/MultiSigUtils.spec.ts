@@ -626,7 +626,7 @@ describe('MultiSigUtils', () => {
         return mockedErgoStateContext;
       });
 
-      const result = await multiSigUtilsInstance.verifyInput(tx, boxes);
+      const result = await multiSigUtilsInstance.verifyInput(tx, boxes, []);
 
       expect(result).toBe(true);
     });
