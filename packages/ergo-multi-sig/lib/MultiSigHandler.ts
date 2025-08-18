@@ -612,6 +612,7 @@ export class MultiSigHandler extends Communicator {
       const isTxValid = await this.multiSigUtilsInstance.verifyInput(
         tx,
         transaction.boxes,
+        transaction.dataBoxes,
       );
       this.logger.info(
         `Received signed tx [${tx.id().to_str()}] and it is ${isTxValid ? 'valid' : 'invalid'}`,

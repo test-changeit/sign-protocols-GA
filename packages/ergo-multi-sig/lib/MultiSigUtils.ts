@@ -349,22 +349,22 @@ export class MultiSigUtils {
    * @param tx signed transaction
    * @param boxes boxes that are used in the transaction
    */
-  verifyInput = async (tx: wasm.Transaction, boxes: Array<ErgoBox>) => {
+  verifyInput = async (
+    tx: wasm.Transaction,
+    boxes: Array<ErgoBox>,
+    dataInputs: Array<ErgoBox>,
+  ) => {
     const context = await this.getStateContext();
     const ergoBoxes = ErgoBoxes.empty();
     for (let index = 0; index < boxes.length; index++) {
       ergoBoxes.add(boxes[index]);
     }
+    const dataBoxes = ErgoBoxes.empty();
+    for (let index = 0; index < dataInputs.length; index++) {
+      dataBoxes.add(dataInputs[index]);
+    }
     for (let ind = 0; ind < tx.inputs().len(); ind++) {
-      if (
-        !wasm.verify_tx_input_proof(
-          ind,
-          context,
-          tx,
-          ergoBoxes,
-          wasm.ErgoBoxes.empty(),
-        )
-      )
+      if (!wasm.verify_tx_input_proof(ind, context, tx, ergoBoxes, dataBoxes))
         return false;
     }
     return true;
