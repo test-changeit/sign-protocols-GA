@@ -1,6 +1,6 @@
 {
   "name": "@rosen-bridge/ergo-multi-sig",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "multi signature protocol for ergo network",
   "repository": "https://github.com/rosen-bridge/sign-protocols",
   "license": "MIT",
