@@ -2,7 +2,7 @@ import { CommitmentPayload } from '../lib';
 import { describe, expect, it, vi } from 'vitest';
 import TestUtils from './testUtils/TestUtils';
 import { boxJs, testCmt, testPubs, testSecrets } from './testData';
-import { turnTime } from '../lib/const';
+import { turnTime as defaultTurnTime } from '../lib/const';
 import {
   getChangeBoxJs,
   getOutBoxJs,
@@ -21,6 +21,7 @@ const change = getChangeBoxJs(ins, [out], tree, fee);
 const reduced = jsToReducedTx(ins, [out, change], dataBoxes, 1311604, fee);
 const requiredSings = 6;
 const boxes = ins.map((i: any) => ErgoBox.from_json(JSON.stringify(i)));
+const turnTime = defaultTurnTime * 1000;
 
 describe('MultiSigHandler', () => {
   describe('peers', () => {
