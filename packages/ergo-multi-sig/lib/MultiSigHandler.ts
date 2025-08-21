@@ -10,7 +10,7 @@ import {
   SignPayload,
   TxQueued,
 } from './types';
-import { turnTime } from './const';
+import { turnTime as defaultTurnTime } from './const';
 import { Semaphore } from 'await-semaphore';
 import { MultiSigUtils } from './MultiSigUtils';
 import { AbstractLogger, DummyLogger } from '@rosen-bridge/abstract-logger';
@@ -23,6 +23,7 @@ export class MultiSigHandler extends Communicator {
   private readonly transactions: Map<string, TxQueued>;
   private readonly secret: Uint8Array;
   private readonly txSignTimeout: number;
+  private readonly turnTime: number;
   private prover?: wasm.Wallet;
   private semaphore = new Semaphore(1);
   private guardDetection: GuardDetection;
@@ -41,6 +42,7 @@ export class MultiSigHandler extends Communicator {
     this.transactions = new Map<string, TxQueued>();
     this.secret = Uint8Array.from(Buffer.from(config.secretHex, 'hex'));
     this.txSignTimeout = config.txSignTimeout;
+    this.turnTime = (config.turnTime ?? defaultTurnTime) * 1000;
     this.multiSigUtilsInstance = config.multiSigUtilsInstance;
     this.ergoGuardPks = config.ergoGuardPks ?? [];
     this.guardDetection = config.guardDetection;
@@ -70,7 +72,9 @@ export class MultiSigHandler extends Communicator {
    */
   public getCurrentTurnInd = (): number => {
     // every turnTime the turn changes to the next guard
-    return Math.floor(new Date().getTime() / turnTime) % this.guardPks.length;
+    return (
+      Math.floor(new Date().getTime() / this.turnTime) % this.guardPks.length
+    );
   };
 
   /**
@@ -156,6 +160,17 @@ export class MultiSigHandler extends Communicator {
   };
 
   /**
+   * clean the transaction state
+   * @param transaction transaction to clean
+   */
+  private cleanTxState = (transaction: TxQueued) => {
+    transaction.simulatedBag = wasm.TransactionHintsBag.empty();
+    transaction.commitments = {};
+    transaction.commitmentSigns = {};
+    transaction.signs = {};
+  };
+
+  /**
    * begin sign a multi-sig transaction.
    * @param tx reduced transaction for multi-sig transaction
    * @param requiredSign number of required signs
@@ -219,6 +234,9 @@ export class MultiSigHandler extends Communicator {
 
     const transaction = this.transactions.get(txId);
     if (transaction && transaction.tx) {
+      if (transaction.coordinator !== currentTurn) {
+        this.cleanTxState(transaction);
+      }
       transaction.coordinator = currentTurn;
 
       transaction.secret =
@@ -639,16 +657,14 @@ export class MultiSigHandler extends Communicator {
   public handleMyTurnForTx = async (txId: string) => {
     const transaction = this.transactions.get(txId);
     if (!transaction) return;
-    transaction.simulatedBag = wasm.TransactionHintsBag.empty();
-    transaction.commitments = {};
-    transaction.commitmentSigns = {};
-    transaction.signs = {};
+
     const myInd = await this.getIndex();
 
     if ((await this.isMyTurn()) && transaction.coordinator !== myInd) {
       this.logger.debug(
         `Initiating sign for tx [${txId}] because it's this guards turn. The correct turn is [${await this.getCurrentTurnId()}]...`,
       );
+      this.cleanTxState(transaction);
       transaction.coordinator = myInd;
       await this.generateCommitment(txId);
       //   ask peers to generate commitment
@@ -696,7 +712,7 @@ export class MultiSigHandler extends Communicator {
             // milliseconds
             if (transaction.tx) {
               this.logger.debug(
-                `Tx [${transaction.tx.unsigned_tx().id()}] got timeout in MultiSig signing process`,
+                `Tx [${transaction.tx.unsigned_tx().id().to_str()}] got timeout in MultiSig signing process`,
               );
             }
             if (transaction.reject) {
