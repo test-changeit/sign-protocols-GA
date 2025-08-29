@@ -1,5 +1,11 @@
 # @rosen-bridge/ergo-multi-sig
 
+## 1.0.5
+
+### Patch Changes
+
+- Improve transaction state cleaning when turn changes
+
 ## 1.0.4
 
 ### Patch Changes
