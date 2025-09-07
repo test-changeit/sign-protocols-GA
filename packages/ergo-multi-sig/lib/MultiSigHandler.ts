@@ -194,7 +194,7 @@ export class MultiSigHandler extends Communicator {
           transaction.reject = reject;
           transaction.requiredSigner = requiredSign;
           release();
-          this.handleMyTurnForTx(tx.unsigned_tx().id().to_str());
+          await this.handleMyTurnForTx(tx.unsigned_tx().id().to_str());
         })
         .catch((e) => {
           this.logger.error(`Error in signing MultiSig transaction: ${e}`);
