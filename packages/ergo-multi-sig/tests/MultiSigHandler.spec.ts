@@ -659,10 +659,11 @@ describe('MultiSigHandler', () => {
       const sender = vi.fn();
       vi.spyOn(handler as any, 'sendMessage').mockImplementation(sender);
       await handler.handleMyTurn();
+      const currentTurnId = await handler.getCurrentTurnId();
       expect(sender).toHaveBeenLastCalledWith(
         'generateCommitment',
         { txId: reduced.unsigned_tx().id().to_str() },
-        [...testPubs].reverse(),
+        [...testPubs].reverse().filter((pk) => pk !== currentTurnId),
         0,
       );
     });
@@ -695,11 +696,12 @@ describe('MultiSigHandler', () => {
 
       vi.setSystemTime(0);
       await handler.handleMyTurn();
+      const currentTurnId = await handler.getCurrentTurnId();
 
       expect(sender).toHaveBeenLastCalledWith(
         'generateCommitment',
         { txId: reduced.unsigned_tx().id().to_str() },
-        [...testPubs].reverse(),
+        [...testPubs].reverse().filter((pk) => pk !== currentTurnId),
         0,
       );
     });

@@ -194,7 +194,7 @@ export class MultiSigHandler extends Communicator {
           transaction.reject = reject;
           transaction.requiredSigner = requiredSign;
           release();
-          await this.generateCommitment(tx.unsigned_tx().id().to_str());
+          await this.handleMyTurnForTx(tx.unsigned_tx().id().to_str());
         })
         .catch((e) => {
           this.logger.error(`Error in signing MultiSig transaction: ${e}`);
@@ -390,7 +390,10 @@ export class MultiSigHandler extends Communicator {
 
             const toSendPeers: string[] = (await this.peersWithIds())
               .filter((peer) => {
-                return Object.keys(transaction.commitments).includes(peer.pub);
+                return (
+                  Object.keys(transaction.commitments).includes(peer.pub) &&
+                  peer.pub !== myPub
+                );
               })
               .map((peer) => peer.id)
               .filter((id): id is string => id !== undefined);
@@ -668,6 +671,7 @@ export class MultiSigHandler extends Communicator {
       transaction.coordinator = myInd;
       await this.generateCommitment(txId);
       //   ask peers to generate commitment
+      const myPub = this.getPk();
       await this.sendMessage(
         MessageType.GenerateCommitment,
         {
@@ -675,6 +679,7 @@ export class MultiSigHandler extends Communicator {
         },
         await this.peersWithIds().then((peers) =>
           peers
+            .filter((peer) => peer.pub !== myPub)
             .map((peer) => peer.id)
             .filter((id): id is string => id !== undefined),
         ),
