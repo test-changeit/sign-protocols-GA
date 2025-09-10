@@ -1,5 +1,12 @@
 # @rosen-bridge/ergo-multi-sig
 
+## 1.0.7
+
+### Patch Changes
+
+- Avoid sending messeges to own guard which causes signing issues
+- Sign() only starts the signing process when it is the correct turn
+
 ## 1.0.6
 
 ### Patch Changes
