@@ -370,7 +370,7 @@ describe('MultiSigHandler', () => {
       );
       await TestUtils.addTx(handler, reduced, requiredSings, boxes, dataBoxes);
       vi.setSystemTime(turnTime);
-      await handler.generateCommitment(reduced.unsigned_tx().id().to_str());
+      await handler.generateCommitment(reduced.unsigned_tx().id().to_str(), 1);
       expect(mockedSendMessage).toHaveBeenCalled();
     });
   });
@@ -489,13 +489,17 @@ describe('MultiSigHandler', () => {
           );
         }),
       );
-      await Promise.all(
-        handlers.map((handler) => {
-          return handler.generateCommitment(
-            reduced.unsigned_tx().id().to_str(),
-          );
-        }),
+      // Handler 0 is coordinator, others respond
+      await handlers[0].generateCommitment(reduced.unsigned_tx().id().to_str());
+      await handlers[1].generateCommitment(
+        reduced.unsigned_tx().id().to_str(),
+        0,
       );
+      await handlers[2].generateCommitment(
+        reduced.unsigned_tx().id().to_str(),
+        0,
+      );
+
       const turnHandler = handlers[0];
       const { transaction, release } = await turnHandler.getQueuedTransaction(
         reduced.unsigned_tx().id().to_str(),
