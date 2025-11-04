@@ -1,8 +1,10 @@
 import { Type } from '@sinclair/typebox';
-import { FastifySeverInstance, MessageResponseSchema } from './schemas';
-import WinstonLogger from '@rosen-bridge/winston-logger';
 
-const logger = WinstonLogger.getInstance().getLogger(import.meta.url);
+import { DefaultLoggerFactory } from '@rosen-bridge/abstract-logger';
+
+import { FastifySeverInstance, MessageResponseSchema } from './schemas';
+
+const logger = DefaultLoggerFactory.getInstance().getLogger(import.meta.url);
 
 /**
  * setups TSS keygen completed route
