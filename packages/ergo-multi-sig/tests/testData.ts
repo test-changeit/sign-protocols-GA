@@ -422,3 +422,186 @@ export const testCmt = {
   },
   sign: 'QS+NNRkqpWlAaQXuOIJC8BLT6af+uv8+rngX9cJiltgJcBXgPn+kvunl/61GeD8XG3sT9a7Ltrixr1169CA2DA==',
 };
+
+const mockSign = {
+  txId: 'dc81d78e9811ded786afbc45212d03df7982da594d9f9f0465c8761369ab47fe',
+  committedInds: [0, 1, 2, 3, 4, 5],
+  cmts: [
+    {
+      '0': [
+        {
+          a: '0273e27448ceece10dc657a40654c50acc0ba1c10e5cd840d1c94a4796a5230020',
+          position: '0-4',
+        },
+      ],
+    },
+    {
+      '0': [
+        {
+          a: '022e63ee80a0e57fc76e3a237fee0a9863f110ebb479f475c9a8608b20df7e8f7a',
+          position: '0-6',
+        },
+      ],
+    },
+    {
+      '0': [
+        {
+          a: '03b40605b14fc545314f0ebb5025a0a816a60315f5e50f0b5964164a490f7fefd9',
+          position: '0-2',
+        },
+      ],
+    },
+    {
+      '0': [
+        {
+          a: '02a08570491b2dc1fb2760504de15b7249512638ddbbcfe1bd6bb0ee46c9654deb',
+          position: '0-7',
+        },
+      ],
+    },
+    {
+      '0': [
+        {
+          a: '024a897a89fb0a14450b25e6d0d6ddfca1002f5a9fa79f520967a979ff3a5c52c8',
+          position: '0-8',
+        },
+      ],
+    },
+    {
+      '0': [
+        {
+          a: '03190a2e07dc2393cab01bdb85453a12f4ad045f87c5b23416ed3d916621d72e4c',
+          position: '0-5',
+        },
+      ],
+    },
+  ],
+  simulated: [
+    {
+      '0': [
+        {
+          a: '0309cdac9d9474f773dbaf19dd2337d95901d5a6a5af85f82927e5454236d2f3cf',
+          position: '0-1',
+        },
+      ],
+    },
+    {
+      '0': [
+        {
+          a: '027fb913d0444a781664dfa776fbf1a3e7f0d8b28bc6bb441d9f201acc8a0cd0be',
+          position: '0-0',
+        },
+      ],
+    },
+    {
+      '0': [
+        {
+          a: '0269c6574a962432b2b0e842e5a665fee074d5b1063537fa150168cc60dd4b99f9',
+          position: '0-9',
+        },
+      ],
+    },
+    {
+      '0': [
+        {
+          a: '036b958ea5767e007d73f39a6232845f54a7607273c4fdfe06c6680333233bf8c2',
+          position: '0-3',
+        },
+      ],
+    },
+  ],
+  simulatedProofs: [
+    {
+      '0': [
+        {
+          proof:
+            '41e0a7d841e6d383ecc97ec2d29af99fa7ae4bc4ae54259b65314406c799c9e0483b4ddb21a488e47f74b732001336eeb0005672eade23b5',
+          position: '0-1',
+        },
+      ],
+    },
+    {
+      '0': [
+        {
+          proof:
+            '32b8af087f1c1d70303f906ab6c9010ea7a6470666572be6efd8ede77b2469b9444c38e5b39da120dfa3814216553ae0ac57d4a7d91e0c7a',
+          position: '0-0',
+        },
+      ],
+    },
+    {
+      '0': [
+        {
+          proof:
+            '49423170c055ab443611adcab5611a67928197f344813d18810d845b85ae0c9b58716eca134db022bacbd73711327f9b777763c57779132a',
+          position: '0-9',
+        },
+      ],
+    },
+    {
+      '0': [
+        {
+          proof:
+            '7cacbc376b6fa179588f36996523b11b7363a2306a4a8aa628e76f874da5e6805e6ab07751f6a9f5d320d21ffe8cfda986d861ae8bba4ce1',
+          position: '0-3',
+        },
+      ],
+    },
+  ],
+  signs: {
+    '032282bafc78f565307794abb1ca4e8e7beb30aab5b8b9d0b1c8d8ea7a74e60a80': {
+      '0': [
+        {
+          proof:
+            'b559e7171ca102b39249674ffdce2e8c6ccfd02abed869fdac97fce7e457331404c0a99a17acce9fd0532e187d1113e766e4914a9d1b083d',
+          position: '0-4',
+        },
+      ],
+    },
+    '037fcf9fcd4c13a6a154b9ec61f3b823d2cfbc9dddf0d8a04f39ae1725408e38fe': {
+      '0': [
+        {
+          proof:
+            'e00f692d7a2ca9b2ab64a0a50cf33893eb8cfe2dd454432ad5f75f3637d12ca392bb4e84415054a5bca1908f5e31387d6d6a6ae4cb194def',
+          position: '0-6',
+        },
+      ],
+    },
+    '0295e3146bbb1cac5bd9f41881bece6942f8af8531ff176cc2af1381310af965e4': {
+      '0': [
+        {
+          proof:
+            '209f663dbbd04c6432aabdcae6f6c35035e170ef89afaf293bd3575c9827bc0e5cac237a25bf904c15aec1a4ae341bceebce41213fa23a36',
+          position: '0-2',
+        },
+      ],
+    },
+    '03a3cbb5a3d101767563c79af30b826eea1f0a01b694cf25cf38a7b42fd606320b': {
+      '0': [
+        {
+          proof:
+            'f1ac8327fc54584ea943a2fd76d11a15fdfe35c3278c49a78181a795eacacd0410bdb334f03547732d7851cc0371a53e4772dff979de7440',
+          position: '0-7',
+        },
+      ],
+    },
+    '03aeebb4d52d48c56021c4d2b140ef4eca430ad34ed730111c8ad7cc2e8a478935': {
+      '0': [
+        {
+          proof:
+            '8116c09505c88b7f20e376a6a53b8c10d81fea905c1e7393fafd173679bbf5b0a39620f699843f7e5b5c62582f829605a9ad64990d9d837c',
+          position: '0-8',
+        },
+      ],
+    },
+    '036f077fa08526f0128c704a6a98cdc924e7add0c814169aaaae76c935f519aee6': {
+      '0': [
+        {
+          proof:
+            '1114da4c39aab51a66f5ac5ac09e9dac76004f8a9008b552380c0ffa77a71a8f7195402fe7ec48d5ca2d9aad44d4e31c47af524892b7f7b5',
+          position: '0-5',
+        },
+      ],
+    },
+  },
+};

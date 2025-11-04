@@ -219,25 +219,31 @@ export class MultiSigHandler extends Communicator {
   };
 
   /**
-   * generating commitment for transaction in the queue by id and send it to the peer with the correct turn
+   * generating commitment for transaction in the queue by id and send it to the coordinator
    * @param txId transaction id to generate commitment for
+   * @param coordinatorIndex the index of the coordinator (undefined if self-initiated as coordinator)
    */
-  generateCommitment = async (txId: string): Promise<void> => {
-    const currentTurn = this.getCurrentTurnInd();
-    const currentTurnId = await this.getCurrentTurnId();
-    if (currentTurnId === undefined) {
-      this.logger.warn(
-        `Cannot generate and send commitment for tx [${txId}] because the peer with the correct turn is not initialized yet.`,
-      );
-      return;
-    }
-
+  generateCommitment = async (
+    txId: string,
+    coordinatorIndex?: number,
+  ): Promise<void> => {
     const transaction = this.transactions.get(txId);
     if (transaction && transaction.tx) {
-      if (transaction.coordinator !== currentTurn) {
-        this.cleanTxState(transaction);
+      // If this is a request from a coordinator, set them as the coordinator for this tx
+      if (coordinatorIndex !== undefined) {
+        // Clean state if coordinator changed
+        if (transaction.coordinator !== coordinatorIndex) {
+          this.cleanTxState(transaction);
+        }
+        transaction.coordinator = coordinatorIndex;
+      } else {
+        // Self-initiated: we are the coordinator
+        const currentTurn = this.getCurrentTurnInd();
+        if (transaction.coordinator !== currentTurn) {
+          this.cleanTxState(transaction);
+        }
+        transaction.coordinator = currentTurn;
       }
-      transaction.coordinator = currentTurn;
 
       transaction.secret =
         this.getProver().generate_commitments_for_reduced_transaction(
@@ -251,20 +257,31 @@ export class MultiSigHandler extends Communicator {
         myPub,
       );
       transaction.commitments[myPub] = publishCommitments;
-      this.logger.debug(
-        `Commitment generated for tx [${txId}]. Broadcasting to the peer with the correct turn (peer ID: ${currentTurnId})...`,
-      );
-      // don't send if it's my turn
-      if (!(await this.isMyTurn()))
-        await this.sendMessage(
-          MessageType.Commitment,
-          {
-            txId: txId,
-            commitment: publishCommitments,
-          },
-          [currentTurnId],
-          this.getDate(),
+
+      // Send commitment to the coordinator if this was requested by another peer
+      if (coordinatorIndex !== undefined) {
+        const coordinatorId = (await this.peersWithIds()).find(
+          (p, i) => i === coordinatorIndex,
+        )?.id;
+        if (coordinatorId) {
+          this.logger.debug(
+            `Commitment generated for tx [${txId}]. Sending to coordinator (index: ${coordinatorIndex})...`,
+          );
+          await this.sendMessage(
+            MessageType.Commitment,
+            {
+              txId: txId,
+              commitment: publishCommitments,
+            },
+            [coordinatorId],
+            this.getDate(),
+          );
+        }
+      } else {
+        this.logger.debug(
+          `Commitment generated for tx [${txId}] by coordinator (self, index: ${transaction.coordinator}).`,
         );
+      }
     }
   };
 
@@ -282,13 +299,6 @@ export class MultiSigHandler extends Communicator {
     signature: string,
     index: number,
   ): Promise<void> => {
-    if (!(await this.isMyTurn())) {
-      this.logger.debug(
-        `Received commitment from [${sender}] but it's not this guard's turn. Current turn: ${await this.getCurrentTurnId()}.`,
-      );
-      return;
-    }
-
     if (payload.txId) {
       const pub = this.ergoGuardPks[index];
 
@@ -299,6 +309,16 @@ export class MultiSigHandler extends Communicator {
       if (transaction.tx === undefined || transaction.secret === undefined) {
         this.logger.info(
           `Received commitment for tx [${payload.txId}] but the transaction is not properly in the queue yet.`,
+        );
+        release();
+        return;
+      }
+
+      // Check if I'm the coordinator for this transaction
+      const myIndex = await this.getIndex();
+      if (transaction.coordinator !== myIndex) {
+        this.logger.debug(
+          `Received commitment from [${sender}] for tx [${payload.txId}] but this guard is not the coordinator. Coordinator index: ${transaction.coordinator}, my index: ${myIndex}.`,
         );
         release();
         return;
@@ -763,6 +783,7 @@ export class MultiSigHandler extends Communicator {
       case MessageType.GenerateCommitment: {
         await this.generateCommitment(
           (payload as GenerateCommitmentPayload).txId,
+          index, // Pass the coordinator's index
         );
         break;
       }
