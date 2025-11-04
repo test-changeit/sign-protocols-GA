@@ -1,4 +1,4 @@
-image: node:20.11.0
+image: node:22.18.0
 
 stages:
   - installation
@@ -58,8 +58,8 @@ lint:
       - '**/node_modules'
       - '**/dist'
   script:
-    - npm run lint --workspace packages
-    - npm run lint --workspace services/keygen-service
+    - npm run lint:check --workspace packages
+    - npm run lint:check --workspace services/keygen-service
 
 test:
   stage: test

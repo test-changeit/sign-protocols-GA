@@ -1,4 +1,4 @@
-FROM node:18.12
+FROM node:22.18
 
 LABEL maintainer="rosen-bridge team <team@rosen.tech>"
 LABEL description="Docker image for the keygen-service owned by rosen-bridge organization."

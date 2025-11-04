@@ -1,2 +1,2 @@
-export { Communicator } from './Communicator';
+export { Communicator } from './communicator';
 export * from './interfaces/types';
