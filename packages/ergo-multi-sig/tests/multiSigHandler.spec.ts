@@ -160,10 +160,10 @@ describe('MultiSigHandler', () => {
         testPubs,
       );
       vi.setSystemTime(0);
-      expect(await handler.isMyTurn()).toBeTruthy();
+      expect(await handler.isMyTurn()).toEqual(true);
       vi.setSystemTime(turnTime);
-      expect(await handler.isMyTurn()).toBeFalsy();
-      expect(await handler2.isMyTurn()).toBeTruthy();
+      expect(await handler.isMyTurn()).toEqual(false);
+      expect(await handler2.isMyTurn()).toEqual(true);
     });
   });
 

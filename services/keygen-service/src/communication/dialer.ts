@@ -1,6 +1,7 @@
+import { bootstrap } from '@libp2p/bootstrap';
+
 import { gossipsub } from '@chainsafe/libp2p-gossipsub';
 import { noise } from '@chainsafe/libp2p-noise';
-import { bootstrap } from '@libp2p/bootstrap';
 import { Connection, Stream } from '@libp2p/interface-connection';
 import { OPEN } from '@libp2p/interface-connection/status';
 import { PeerId } from '@libp2p/interface-peer-id';

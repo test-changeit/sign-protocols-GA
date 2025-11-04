@@ -80,7 +80,7 @@ describe('MultiSigUtils', () => {
         secondPublishedCommitment,
         3,
       );
-      expect(res).toBeFalsy();
+      expect(res).toEqual(false);
     });
 
     /**
@@ -133,7 +133,7 @@ describe('MultiSigUtils', () => {
         secondPublishedCommitment,
         3,
       );
-      expect(res).toBeTruthy();
+      expect(res).toEqual(true);
     });
 
     /**
@@ -187,7 +187,7 @@ describe('MultiSigUtils', () => {
         secondPublishedCommitment,
         3,
       );
-      expect(res).toBeTruthy();
+      expect(res).toEqual(true);
     });
   });
 
@@ -218,7 +218,7 @@ describe('MultiSigUtils', () => {
         firstCommitments,
         secondCommitments,
       );
-      expect(res).toBeTruthy();
+      expect(res).toEqual(true);
     });
 
     /**
@@ -247,7 +247,7 @@ describe('MultiSigUtils', () => {
         firstCommitments,
         secondCommitments,
       );
-      expect(res).toBeFalsy();
+      expect(res).toEqual(false);
     });
   });
 

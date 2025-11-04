@@ -410,7 +410,7 @@ describe('TssSigner', () => {
     it('should return false when remain more than NoWork seconds', () => {
       const currentTime = 1686285606068;
       vi.setSystemTime(new Date(currentTime));
-      expect(signer.mockedIsNoWorkTime()).toBeFalsy();
+      expect(signer.mockedIsNoWorkTime()).toEqual(false);
     });
 
     /**
@@ -425,7 +425,7 @@ describe('TssSigner', () => {
     it('should return true when remain less than NoWork seconds', () => {
       const currentTime = 1686285651068;
       vi.setSystemTime(new Date(currentTime));
-      expect(signer.mockedIsNoWorkTime()).toBeTruthy();
+      expect(signer.mockedIsNoWorkTime()).toEqual(true);
     });
   });
 

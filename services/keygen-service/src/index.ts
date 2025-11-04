@@ -1,4 +1,5 @@
 import './bootstrap';
+
 import Configs from './configs/configs';
 import { initApiServer } from './jobs/apiServer';
 import Tss from './service/tss';
