@@ -1,5 +1,5 @@
 ---
-'@rosen-bridge/keygen-service': patch
+'@rosen-bridge/keygen-service': minor
 ---
 
 Add `@rosen-clients/rate-limited-axios` instead of axios
