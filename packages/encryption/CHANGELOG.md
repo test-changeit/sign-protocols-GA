@@ -15,7 +15,6 @@
 ### Patch Changes
 
 Update dependencies:
-
 - @rosen-bridge/abstract-logger@3.0.1
 
 ## 0.1.2
