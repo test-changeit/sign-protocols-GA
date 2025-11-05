@@ -1,5 +1,20 @@
 # @rosen-bridge/ergo-multi-sig
 
+## 2.0.0
+
+### Major Changes
+
+- Update node to 22.18.0
+
+### Patch Changes
+
+- Avoid calculating turnTime everytime
+- Update dependencies:
+  - @rosen-bridge/abstract-logger@3.0.1
+  - @rosen-bridge/communication@2.0.0
+  - @rosen-bridge/encryption@1.0.0
+  - @rosen-bridge/detection@2.0.0
+
 ## 1.0.7
 
 ### Patch Changes
