@@ -1,6 +1,6 @@
 {
   "name": "@rosen-bridge/communication",
-  "version": "1.0.2",
+  "version": "2.0.0",
   "description": "abstractly manage communication between endpoints",
   "repository": {
     "type": "git",
@@ -29,7 +29,7 @@
   },
   "dependencies": {
     "@rosen-bridge/abstract-logger": "^3.0.1",
-    "@rosen-bridge/encryption": "^0.1.2"
+    "@rosen-bridge/encryption": "^1.0.0"
   },
   "devDependencies": {
     "@vitest/coverage-istanbul": "^3.1.4",
