@@ -1,5 +1,6 @@
 {
   "name": "tss-api",
+  "private": true,
   "version": "2.1.0",
   "description": "a service for Threshold Signature Scheme, for ECDSA and EDDSA",
   "repository": {
