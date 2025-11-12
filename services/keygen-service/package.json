@@ -40,19 +40,19 @@
     "@rosen-clients/rate-limited-axios": "^1.1.0",
     "@sinclair/typebox": "^0.30.4",
     "config": "^3.3.7",
-    "cross-env": "^7.0.3",
     "fastify": "^4.18.0",
     "it-pipe": "2.0.4",
     "it-pushable": "^3.1.0",
     "libp2p": "^0.41.0",
-    "lodash-es": "^4.17.21",
-    "patch-package": "^6.5.1",
-    "uint8arrays": "^3.1.0"
+    "@libp2p/peer-id-factory": "^1.0.18",
+    "it-map": "2.0.0",
+    "it-length-prefixed": "8.0.4",
+    "uint8arrays": "^3.1.0",
+    "lodash-es": "^4.17.21"
   },
   "devDependencies": {
     "@types/config": "^0.0.41",
     "@types/lodash-es": "^4.17.6",
-    "@types/ws": "^8.5.3",
     "tsx": "^4.19.2",
     "@types/node": "^22.18.0",
     "typescript": "^5.8.3"
