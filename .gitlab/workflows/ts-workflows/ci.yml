@@ -24,7 +24,6 @@ knip:
     policy: pull
     paths:
       - node_modules
-      - '**/node_modules'
       - .npm
   script:
     - npx knip --dependencies
@@ -64,8 +63,6 @@ test:
     policy: pull
     paths:
       - node_modules
-      - '**/node_modules'
-      - '**/dist'
       - .npm
   script:
     - npm run test --workspace packages
@@ -96,8 +93,6 @@ changeset:
     policy: pull
     paths:
       - node_modules
-      - '**/node_modules'
-      - '**/dist'
       - .npm
   before_script:
     - git fetch origin dev
