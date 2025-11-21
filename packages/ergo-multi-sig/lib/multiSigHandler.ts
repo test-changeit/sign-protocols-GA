@@ -605,18 +605,25 @@ export class MultiSigHandler extends Communicator {
           );
           return;
         }
-        this.logger.debug(
-          `Received proof from [${sender}] for tx [${payload.txId}]...`,
-        );
         const pub = this.ergoGuardPks[index];
 
         transaction.signs[pub] = payload.proof;
+        this.logger.info(
+          `Received proof from [${index}] for tx [${payload.txId}]. (${
+            Object.keys(transaction.signs).length
+          }/${transaction.requiredSigner})`,
+        );
 
         if (
           Object.keys(transaction.signs).length >= transaction.requiredSigner
         ) {
+          const signedIndexes = Object.keys(transaction.signs).map((pub) =>
+            this.ergoGuardPks.indexOf(pub),
+          );
           this.logger.info(
-            `All proofs received for tx [${payload.txId}]. Signing...`,
+            `Tx [${payload.txId}] has enough proofs. Indexes: [${signedIndexes.join(
+              ', ',
+            )}]`,
           );
 
           const inputLen = transaction.tx.unsigned_tx().inputs().len();
