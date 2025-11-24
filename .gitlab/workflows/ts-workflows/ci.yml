@@ -49,25 +49,12 @@ lint:
     policy: pull
     paths:
       - node_modules
-      - '**/node_modules'
-      - '**/dist'
       - .npm
   script:
     - npm run lint:check --workspace packages
     - npm run lint:check --workspace services/keygen-service
 
 test:
-  stage: ci
-  cache:
-    key: ${CI_COMMIT_REF_NAME}-ts
-    policy: pull
-    paths:
-      - node_modules
-      - .npm
-  script:
-    - npm run test --workspace packages
-
-coverage:
   stage: ci
   cache:
     key: ${CI_COMMIT_REF_NAME}-ts
