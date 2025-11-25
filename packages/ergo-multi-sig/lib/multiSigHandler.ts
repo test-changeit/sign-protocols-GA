@@ -187,16 +187,23 @@ export class MultiSigHandler extends Communicator {
   ): Promise<wasm.Transaction> => {
     this.peersMustBeInitialized();
     return new Promise<wasm.Transaction>((resolve, reject) => {
-      this.getQueuedTransaction(tx.unsigned_tx().id().to_str())
+      const txId = tx.unsigned_tx().id().to_str();
+      this.getQueuedTransaction(txId)
         .then(async ({ transaction, release }) => {
-          transaction.tx = tx;
-          transaction.boxes = boxes;
-          transaction.dataBoxes = dataBoxes ? dataBoxes : [];
-          transaction.resolve = resolve;
-          transaction.reject = reject;
-          transaction.requiredSigner = requiredSign;
-          release();
-          await this.handleMyTurnForTx(tx.unsigned_tx().id().to_str());
+          try {
+            transaction.tx = tx;
+            transaction.boxes = boxes;
+            transaction.dataBoxes = dataBoxes ? dataBoxes : [];
+            transaction.resolve = resolve;
+            transaction.reject = reject;
+            transaction.requiredSigner = requiredSign;
+          } finally {
+            this.logger.debug(
+              `Releasing semaphore after queuing tx [${txId}] for signing`,
+            );
+            release();
+          }
+          await this.handleMyTurnForTx(txId);
         })
         .catch((e) => {
           this.logger.error(`Error in signing MultiSig transaction: ${e}`);
@@ -267,7 +274,7 @@ export class MultiSigHandler extends Communicator {
         )?.id;
         if (coordinatorId) {
           this.logger.debug(
-            `Commitment generated for tx [${txId}]. Sending to coordinator (index: ${coordinatorIndex})...`,
+            `New commitment generated for tx [${txId}]. Sending to coordinator (index: ${coordinatorIndex})...`,
           );
           await this.sendMessage(
             MessageType.Commitment,
@@ -307,142 +314,156 @@ export class MultiSigHandler extends Communicator {
       const { transaction, release } = await this.getQueuedTransaction(
         payload.txId,
       );
+      try {
+        if (transaction.tx === undefined || transaction.secret === undefined) {
+          this.logger.info(
+            `Received commitment for tx [${payload.txId}] but the transaction is not properly in the queue yet.`,
+          );
+          return;
+        }
 
-      if (transaction.tx === undefined || transaction.secret === undefined) {
-        this.logger.info(
-          `Received commitment for tx [${payload.txId}] but the transaction is not properly in the queue yet.`,
-        );
-        release();
-        return;
-      }
+        // Check if I'm the coordinator for this transaction
+        const myIndex = await this.getIndex();
+        if (transaction.coordinator !== myIndex) {
+          this.logger.debug(
+            `Received commitment from [${sender}] for tx [${payload.txId}] but this guard is not the coordinator. Coordinator index: ${transaction.coordinator}, my index: ${myIndex}.`,
+          );
+          return;
+        }
 
-      // Check if I'm the coordinator for this transaction
-      const myIndex = await this.getIndex();
-      if (transaction.coordinator !== myIndex) {
-        this.logger.debug(
-          `Received commitment from [${sender}] for tx [${payload.txId}] but this guard is not the coordinator. Coordinator index: ${transaction.coordinator}, my index: ${myIndex}.`,
-        );
-        release();
-        return;
-      }
-
-      // if enough commitments, we do not need to process new commitments
-      const commits = Object.values(transaction.commitments);
-      if (commits.length < transaction.requiredSigner) {
-        try {
-          transaction.commitments[pub] = payload.commitment;
-          transaction.commitmentSigns[pub] = signature;
-
-          const myPub = this.getPk();
-
-          if (
-            Object.keys(transaction.commitments).length >=
-            transaction.requiredSigner
-          ) {
-            this.logger.info(`Tx [${payload.txId}] has enough commitments.`);
-
-            const willSignPubs = Object.keys(transaction.commitments);
-            const willSignInds = willSignPubs.map((pub) =>
-              this.peers()
-                .map((peer) => peer.pub)
-                .indexOf(pub),
+        // if enough commitments, we do not need to process new commitments
+        const commits = Object.values(transaction.commitments);
+        if (commits.length < transaction.requiredSigner) {
+          try {
+            transaction.commitments[pub] = payload.commitment;
+            transaction.commitmentSigns[pub] = signature;
+            this.logger.info(
+              `Received commitment from [${index}] for tx [${
+                payload.txId
+              }]. (${Object.keys(transaction.commitments).length}/${
+                transaction.requiredSigner
+              })`,
             );
-            const simulated = this.peers()
-              .filter((peer) => !willSignPubs.includes(peer.pub))
-              .map((peer) => peer.pub);
 
-            const inputLen = transaction.tx.unsigned_tx().inputs().len();
-            const hints = MultiSigUtils.publishedCommitmentsToHintBag(
-              Object.values(transaction.commitments),
-              willSignPubs,
-              inputLen,
-            );
-            const hintsCopy = wasm.TransactionHintsBag.from_json(
-              JSON.stringify(hints.to_json()),
-            );
-            const signedTxSim =
-              MultiSigUtils.getEmptyProver().sign_reduced_transaction_multi(
-                transaction.tx,
-                hintsCopy,
+            const myPub = this.getPk();
+
+            if (
+              Object.keys(transaction.commitments).length >=
+              transaction.requiredSigner
+            ) {
+              const willSignPubs = Object.keys(transaction.commitments);
+              const willSignInds = willSignPubs.map((pub) =>
+                this.peers()
+                  .map((peer) => peer.pub)
+                  .indexOf(pub),
               );
+              this.logger.info(
+                `Tx [${payload.txId}] has enough commitments. Indexes: [${willSignInds}]`,
+              );
+              const simulated = this.peers()
+                .filter((peer) => !willSignPubs.includes(peer.pub))
+                .map((peer) => peer.pub);
 
-            const simHints = await this.multiSigUtilsInstance.extract_hints(
-              signedTxSim,
-              transaction.boxes,
-              transaction.dataBoxes,
-              [],
-              simulated,
-            );
-            MultiSigUtils.add_hints(hints, simHints, inputLen);
+              const inputLen = transaction.tx.unsigned_tx().inputs().len();
+              const hints = MultiSigUtils.publishedCommitmentsToHintBag(
+                Object.values(transaction.commitments),
+                willSignPubs,
+                inputLen,
+              );
+              const hintsCopy = wasm.TransactionHintsBag.from_json(
+                JSON.stringify(hints.to_json()),
+              );
+              const signedTxSim =
+                MultiSigUtils.getEmptyProver().sign_reduced_transaction_multi(
+                  transaction.tx,
+                  hintsCopy,
+                );
 
-            transaction.simulatedBag = simHints;
-            const simHintsPublish =
-              MultiSigUtils.toReducedPublishedCommitmentsArray(
-                simHints,
+              const simHints = await this.multiSigUtilsInstance.extract_hints(
+                signedTxSim,
+                transaction.boxes,
+                transaction.dataBoxes,
+                [],
                 simulated,
               );
-            const simPublishedProofs =
-              MultiSigUtils.toReducedPublishedProofsArray(simHints, simulated);
+              MultiSigUtils.add_hints(hints, simHints, inputLen);
 
-            MultiSigUtils.add_hints(hints, transaction.secret, inputLen);
-            const signedTx = this.getProver().sign_reduced_transaction_multi(
-              transaction.tx,
-              hints,
-            );
-
-            const myHint = await this.multiSigUtilsInstance.extract_hints(
-              signedTx,
-              transaction.boxes,
-              transaction.dataBoxes,
-              [myPub],
-              [],
-            );
-            transaction.signs[myPub] = MultiSigUtils.hintBagToPublishedProof(
-              myHint,
-              myPub,
-            );
-
-            const signPayload = {
-              txId: payload.txId,
-              committedInds: willSignInds,
-              cmts: Object.values(transaction.commitments),
-              simulated: simHintsPublish,
-              simulatedProofs: simPublishedProofs,
-            };
-
-            const toSendPeers: string[] = (await this.peersWithIds())
-              .filter((peer) => {
-                return (
-                  Object.keys(transaction.commitments).includes(peer.pub) &&
-                  peer.pub !== myPub
+              transaction.simulatedBag = simHints;
+              const simHintsPublish =
+                MultiSigUtils.toReducedPublishedCommitmentsArray(
+                  simHints,
+                  simulated,
                 );
-              })
-              .map((peer) => peer.id)
-              .filter((id): id is string => id !== undefined);
+              const simPublishedProofs =
+                MultiSigUtils.toReducedPublishedProofsArray(
+                  simHints,
+                  simulated,
+                );
 
-            this.logger.info(
-              `All commitments received for tx [${payload.txId}]. Initiating sign...`,
-            );
+              MultiSigUtils.add_hints(hints, transaction.secret, inputLen);
+              const signedTx = this.getProver().sign_reduced_transaction_multi(
+                transaction.tx,
+                hints,
+              );
 
-            await this.sendMessage(
-              MessageType.InitiateSign,
-              signPayload,
-              toSendPeers,
-              this.getDate(),
+              const myHint = await this.multiSigUtilsInstance.extract_hints(
+                signedTx,
+                transaction.boxes,
+                transaction.dataBoxes,
+                [myPub],
+                [],
+              );
+              transaction.signs[myPub] = MultiSigUtils.hintBagToPublishedProof(
+                myHint,
+                myPub,
+              );
+
+              const signPayload = {
+                txId: payload.txId,
+                committedInds: willSignInds,
+                cmts: Object.values(transaction.commitments),
+                simulated: simHintsPublish,
+                simulatedProofs: simPublishedProofs,
+              };
+
+              const toSendPeers: string[] = (await this.peersWithIds())
+                .filter((peer) => {
+                  return (
+                    Object.keys(transaction.commitments).includes(peer.pub) &&
+                    peer.pub !== myPub
+                  );
+                })
+                .map((peer) => peer.id)
+                .filter((id): id is string => id !== undefined);
+
+              this.logger.info(
+                `All commitments received for tx [${payload.txId}]. Initiating sign...`,
+              );
+
+              await this.sendMessage(
+                MessageType.InitiateSign,
+                signPayload,
+                toSendPeers,
+                this.getDate(),
+              );
+            }
+          } catch (e) {
+            this.logger.warn(
+              `An unknown exception occurred while handling commitment from other peer: ${e}`,
             );
+            if (e instanceof Error && e.stack) this.logger.warn(e.stack);
           }
-        } catch (e) {
-          this.logger.warn(
-            `An unknown exception occurred while handling commitment from other peer: ${e}`,
+        } else {
+          this.logger.debug(
+            `A new commitment has been received from [${sender}] for transaction [${payload.txId}] that has sufficient commitment.`,
           );
-          if (e instanceof Error && e.stack) this.logger.warn(e.stack);
         }
-      } else {
+      } finally {
         this.logger.debug(
-          `A new commitment has been received from [${sender}] for transaction [${payload.txId}] that has sufficient commitment.`,
+          `Releasing semaphore after handling commitment for tx [${payload.txId}]`,
         );
+        release();
       }
-      release();
     }
   };
 
@@ -468,73 +489,83 @@ export class MultiSigHandler extends Communicator {
       const { transaction, release } = await this.getQueuedTransaction(
         payload.txId,
       );
-      if (transaction.tx === undefined || transaction.secret === undefined) {
-        this.logger.info(
-          `Received initiate sign for tx [${payload.txId}] but the transaction is not properly in the queue yet.`,
+      let outgoingSignPayload: SignPayload | undefined;
+      try {
+        if (transaction.tx === undefined || transaction.secret === undefined) {
+          this.logger.info(
+            `Received initiate sign for tx [${payload.txId}] but the transaction is not properly in the queue yet.`,
+          );
+          return;
+        }
+        this.logger.info(`Initiating sign for tx [${payload.txId}]...`);
+        const myPub = this.getPk();
+        const signed = payload.committedInds.map(
+          (ind) => this.peers()[ind].pub,
+        );
+        const simulated = this.peers()
+          .filter((peer) => !signed.includes(peer.pub))
+          .map((peer) => peer.pub);
+
+        const inputLen = transaction.tx.unsigned_tx().inputs().len();
+        const hints = wasm.TransactionHintsBag.empty();
+        const cmtHints = MultiSigUtils.publishedCommitmentsToHintBag(
+          payload.cmts,
+          signed,
+          inputLen,
+        );
+        MultiSigUtils.add_hints(hints, cmtHints, inputLen);
+
+        const simHints = MultiSigUtils.publishedCommitmentsToHintBag(
+          payload.simulated,
+          simulated,
+          inputLen,
+          'cmtSimulated',
+        );
+        MultiSigUtils.add_hints(hints, simHints, inputLen);
+
+        const simProofs = MultiSigUtils.publishedProofsToHintBag(
+          payload.simulatedProofs,
+          simulated,
+          inputLen,
+          'proofSimulated',
+        );
+        MultiSigUtils.add_hints(hints, simProofs, inputLen);
+
+        MultiSigUtils.add_hints(hints, transaction.secret, inputLen);
+
+        const partial = this.getProver().sign_reduced_transaction_multi(
+          transaction.tx,
+          hints,
+        );
+        const signer = [myPub];
+        const myHints = await this.multiSigUtilsInstance.extract_hints(
+          partial,
+          transaction.boxes,
+          transaction.dataBoxes,
+          signer,
+          [],
+        );
+        const proof = MultiSigUtils.hintBagToPublishedProof(myHints, myPub);
+
+        outgoingSignPayload = {
+          proof: proof,
+          txId: payload.txId,
+        };
+      } finally {
+        this.logger.debug(
+          `Releasing semaphore after preparing initiate sign response for tx [${payload.txId}]`,
         );
         release();
-        return;
       }
-      this.logger.info(`Initiating sign for tx [${payload.txId}]...`);
-      const myPub = this.getPk();
-      const signed = payload.committedInds.map((ind) => this.peers()[ind].pub);
-      const simulated = this.peers()
-        .filter((peer) => !signed.includes(peer.pub))
-        .map((peer) => peer.pub);
 
-      const inputLen = transaction.tx.unsigned_tx().inputs().len();
-      const hints = wasm.TransactionHintsBag.empty();
-      const cmtHints = MultiSigUtils.publishedCommitmentsToHintBag(
-        payload.cmts,
-        signed,
-        inputLen,
-      );
-      MultiSigUtils.add_hints(hints, cmtHints, inputLen);
+      if (!outgoingSignPayload) return;
 
-      const simHints = MultiSigUtils.publishedCommitmentsToHintBag(
-        payload.simulated,
-        simulated,
-        inputLen,
-        'cmtSimulated',
-      );
-      MultiSigUtils.add_hints(hints, simHints, inputLen);
-
-      const simProofs = MultiSigUtils.publishedProofsToHintBag(
-        payload.simulatedProofs,
-        simulated,
-        inputLen,
-        'proofSimulated',
-      );
-      MultiSigUtils.add_hints(hints, simProofs, inputLen);
-
-      MultiSigUtils.add_hints(hints, transaction.secret, inputLen);
-
-      const partial = this.getProver().sign_reduced_transaction_multi(
-        transaction.tx,
-        hints,
-      );
-      const signer = [myPub];
-      const myHints = await this.multiSigUtilsInstance.extract_hints(
-        partial,
-        transaction.boxes,
-        transaction.dataBoxes,
-        signer,
-        [],
-      );
-      const proof = MultiSigUtils.hintBagToPublishedProof(myHints, myPub);
-
-      const signPayload = {
-        proof: proof,
-        txId: payload.txId,
-      };
-
-      release();
       this.logger.info(
         `Sending proof to [${sender}] for tx [${payload.txId}]...`,
       );
       await this.sendMessage(
         MessageType.Sign,
-        signPayload,
+        outgoingSignPayload,
         [sender],
         this.getDate(),
       );
@@ -557,86 +588,105 @@ export class MultiSigHandler extends Communicator {
     payload: SignPayload,
     index: number,
   ): Promise<void> => {
+    let signedTxBytes: string | undefined;
+    let broadcastPayload: SignedTxPayload | undefined;
+    let recipients: string[] = [];
     try {
       const { transaction, release } = await this.getQueuedTransaction(
         payload.txId,
       );
-      if (
-        transaction.tx === undefined ||
-        transaction.simulatedBag === undefined
-      ) {
-        this.logger.info(
-          `Received proof from [${sender}] for tx [${payload.txId}] but the transaction is not properly in the queue yet.`,
-        );
-        release();
-        return;
-      }
-      this.logger.debug(
-        `Received proof from [${sender}] for tx [${payload.txId}]...`,
-      );
-      const pub = this.ergoGuardPks[index];
-
-      transaction.signs[pub] = payload.proof;
-
-      if (Object.keys(transaction.signs).length >= transaction.requiredSigner) {
-        this.logger.info(
-          `All proofs received for tx [${payload.txId}]. Signing...`,
-        );
-
-        const inputLen = transaction.tx.unsigned_tx().inputs().len();
-        const allHints = wasm.TransactionHintsBag.empty();
-        const signedOrder = Object.keys(transaction.signs);
-        const signedProofs = signedOrder.map((key) => transaction.signs[key]);
-        const hintBag = MultiSigUtils.publishedProofsToHintBag(
-          signedProofs,
-          signedOrder,
-          inputLen,
-        );
-        MultiSigUtils.add_hints(allHints, hintBag, inputLen);
-
-        MultiSigUtils.add_hints(allHints, transaction.simulatedBag, inputLen);
-
-        const cmtHints = MultiSigUtils.publishedCommitmentsToHintBag(
-          Object.values(transaction.commitments),
-          Object.keys(transaction.commitments),
-          inputLen,
-        );
-        MultiSigUtils.add_hints(allHints, cmtHints, inputLen);
-
-        const signed =
-          MultiSigUtils.getEmptyProver().sign_reduced_transaction_multi(
-            transaction.tx,
-            allHints,
+      try {
+        if (
+          transaction.tx === undefined ||
+          transaction.simulatedBag === undefined
+        ) {
+          this.logger.info(
+            `Received proof from [${sender}] for tx [${payload.txId}] but the transaction is not properly in the queue yet.`,
           );
-        const txBytes = Buffer.from(signed.sigma_serialize_bytes()).toString(
-          'base64',
+          return;
+        }
+        const pub = this.ergoGuardPks[index];
+
+        transaction.signs[pub] = payload.proof;
+        this.logger.info(
+          `Received proof from [${index}] for tx [${payload.txId}]. (${
+            Object.keys(transaction.signs).length
+          }/${transaction.requiredSigner})`,
+        );
+
+        if (
+          Object.keys(transaction.signs).length >= transaction.requiredSigner
+        ) {
+          const signedIndexes = Object.keys(transaction.signs).map((pub) =>
+            this.ergoGuardPks.indexOf(pub),
+          );
+          this.logger.info(
+            `Tx [${payload.txId}] has enough proofs. Indexes: [${signedIndexes.join(
+              ', ',
+            )}]`,
+          );
+
+          const inputLen = transaction.tx.unsigned_tx().inputs().len();
+          const allHints = wasm.TransactionHintsBag.empty();
+          const signedOrder = Object.keys(transaction.signs);
+          const signedProofs = signedOrder.map((key) => transaction.signs[key]);
+          const hintBag = MultiSigUtils.publishedProofsToHintBag(
+            signedProofs,
+            signedOrder,
+            inputLen,
+          );
+          MultiSigUtils.add_hints(allHints, hintBag, inputLen);
+
+          MultiSigUtils.add_hints(allHints, transaction.simulatedBag, inputLen);
+
+          const cmtHints = MultiSigUtils.publishedCommitmentsToHintBag(
+            Object.values(transaction.commitments),
+            Object.keys(transaction.commitments),
+            inputLen,
+          );
+          MultiSigUtils.add_hints(allHints, cmtHints, inputLen);
+
+          const signed =
+            MultiSigUtils.getEmptyProver().sign_reduced_transaction_multi(
+              transaction.tx,
+              allHints,
+            );
+          signedTxBytes = Buffer.from(signed.sigma_serialize_bytes()).toString(
+            'base64',
+          );
+
+          broadcastPayload = {
+            txBytes: signedTxBytes,
+          };
+          const myPub = this.getPk();
+          recipients = (await this.peersWithIds())
+            .filter((peer) => peer.pub !== myPub)
+            .map((peer) => peer.id)
+            .filter((id): id is string => id !== undefined);
+        }
+      } finally {
+        this.logger.debug(
+          `Releasing semaphore after processing proof from [${sender}] for tx [${payload.txId}]`,
         );
         release();
-        await this.handleSignedTx(txBytes);
-
-        const txPayload = {
-          txBytes: txBytes,
-        };
-        const myPub = this.getPk();
-        const toSend: string[] = (await this.peersWithIds())
-          .filter((peer) => peer.pub !== myPub)
-          .map((peer) => peer.id)
-          .filter((id): id is string => id !== undefined);
-
-        await this.sendMessage(
-          MessageType.SignedTx,
-          txPayload,
-          toSend,
-          this.getDate(),
-        );
       }
-
-      release();
     } catch (e) {
       this.logger.warn(
         `An unknown exception occurred while handling initiate sign from other peer: ${e}`,
       );
+      return;
     }
+
+    if (!signedTxBytes || !broadcastPayload) return;
+
+    await this.handleSignedTx(signedTxBytes);
+
+    await this.sendMessage(
+      MessageType.SignedTx,
+      broadcastPayload,
+      recipients,
+      this.getDate(),
+    );
   };
 
   /**
@@ -649,24 +699,29 @@ export class MultiSigHandler extends Communicator {
       const tx = wasm.Transaction.sigma_parse_bytes(
         Uint8Array.from(Buffer.from(txBytes, 'base64')),
       );
-      const { transaction, release } = await this.getQueuedTransaction(
-        tx.id().to_str(),
-      );
-      const isTxValid = await this.multiSigUtilsInstance.verifyInput(
-        tx,
-        transaction.boxes,
-        transaction.dataBoxes,
-      );
-      this.logger.info(
-        `Received signed tx [${tx.id().to_str()}] and it is ${isTxValid ? 'valid' : 'invalid'}`,
-      );
+      const txId = tx.id().to_str();
+      const { transaction, release } = await this.getQueuedTransaction(txId);
+      try {
+        const isTxValid = await this.multiSigUtilsInstance.verifyInput(
+          tx,
+          transaction.boxes,
+          transaction.dataBoxes,
+        );
+        this.logger.info(
+          `Received signed tx [${txId}] and it is ${isTxValid ? 'valid' : 'invalid'}`,
+        );
 
-      if (isTxValid && transaction.resolve) transaction.resolve(tx);
-      if (!isTxValid && transaction.reject)
-        transaction.reject(`Signed transaction ${tx.id().to_str()} is invalid`);
+        if (isTxValid && transaction.resolve) transaction.resolve(tx);
+        if (!isTxValid && transaction.reject)
+          transaction.reject(`Signed transaction ${txId} is invalid`);
 
-      release();
-      this.transactions.delete(tx.id().to_str());
+        this.transactions.delete(txId);
+      } finally {
+        this.logger.debug(
+          `Releasing semaphore after validating signed tx [${txId}]`,
+        );
+        release();
+      }
     } catch (e) {
       this.logger.warn(
         `An unknown exception occurred while handling signed transaction: ${e}`,
@@ -729,9 +784,13 @@ export class MultiSigHandler extends Communicator {
   public cleanup = (): void => {
     this.logger.info('Cleaning MultiSig queue');
     let cleanedTransactionCount = 0;
-    this.semaphore.acquire().then((release) => {
+    this.semaphore.acquire().then(async (release) => {
       try {
+        const myIndex = await this.getIndex();
         for (const [key, transaction] of Array.from(this.transactions)) {
+          const isCoordinatorUnset = transaction.coordinator === -1;
+          const isCoordinatorMine = transaction.coordinator === myIndex;
+          if (!isCoordinatorUnset && !isCoordinatorMine) continue;
           if (
             transaction.createTime <
             new Date().getTime() - this.txSignTimeout * 1000
@@ -749,13 +808,14 @@ export class MultiSigHandler extends Communicator {
             cleanedTransactionCount++;
           }
         }
-        release();
       } catch (e) {
-        release();
         this.logger.error(
           `An error occurred while removing unsigned transactions from MultiSig queue: ${e}`,
         );
         throw e;
+      } finally {
+        this.logger.debug('Releasing semaphore after cleanup execution');
+        release();
       }
       this.logger.info(`MultiSig queue cleaned up`, {
         count: cleanedTransactionCount,
