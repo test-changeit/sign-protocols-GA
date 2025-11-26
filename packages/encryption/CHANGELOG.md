@@ -1,5 +1,11 @@
 # @rosen-bridge/encryption
 
+## 1.0.1
+
+### Patch Changes
+
+- Remove dependency @rosen-bridge/abstract-logger@3.0.1
+
 ## 1.0.0
 
 ### Major Changes

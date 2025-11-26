@@ -62,6 +62,13 @@ export class MultiSigHandler extends Communicator {
    */
   peersWithIds = async (): Promise<Signer[]> => {
     const activeGuards = await this.guardDetection.activeGuards();
+    this.logger.debug('Active guards snapshot', {
+      guards: activeGuards.map((guard) => ({
+        index: guard.index,
+        peerId: guard.peerId,
+        publicKey: guard.publicKey,
+      })),
+    });
 
     return this.ergoGuardPks.map((ergoPk, index) => {
       const commPk = activeGuards.find((g) => g.index === index);

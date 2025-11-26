@@ -1,6 +1,6 @@
 {
   "name": "@rosen-bridge/detection",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "find available endpoints in private network",
   "repository": {
     "type": "git",
@@ -29,8 +29,8 @@
   },
   "dependencies": {
     "@rosen-bridge/abstract-logger": "^3.0.1",
-    "@rosen-bridge/communication": "^2.0.0",
-    "@rosen-bridge/encryption": "^1.0.0",
+    "@rosen-bridge/communication": "^2.0.1",
+    "@rosen-bridge/encryption": "^1.0.1",
     "@noble/hashes": "^1.7.1"
   },
   "devDependencies": {
