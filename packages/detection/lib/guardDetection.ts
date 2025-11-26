@@ -115,7 +115,12 @@ export class GuardDetection extends Communicator {
    */
   update = async (): Promise<void> => {
     this.clearNonce();
-    if ((await this.activeGuards()).length < this.needGuardThreshold) {
+    const activeGuards = await this.activeGuards();
+    this.logger.debug(`Current Active guards: ${JSON.stringify(activeGuards)}`);
+    if (activeGuards.length < this.needGuardThreshold) {
+      this.logger.debug(
+        `Initializing detection again due to low number of active guards [${activeGuards.length}<${this.needGuardThreshold}]`,
+      );
       await this.init();
     } else {
       // TODO: improve the performance of TSS functions

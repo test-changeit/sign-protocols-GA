@@ -4,6 +4,7 @@
 
 ### Patch Changes
 
+- Add logs to the `GuardDetection.update` function
 - Remove dependency @noble/hashes@1.7.1
 - Update dependencies
   - @rosen-bridge/encryption@1.0.1

@@ -10,7 +10,6 @@
 
 - Remove dependency lodash-es@4.17.21
 - Update dependencies
-- Update dependencies
   - @rosen-bridge/detection@2.0.1
   - @rosen-bridge/encryption@1.0.1
   - @rosen-bridge/communication@2.0.1
