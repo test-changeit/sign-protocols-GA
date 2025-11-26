@@ -1,5 +1,8 @@
 image: golang:1.18
 
+default:
+  interruptible: true
+
 stages:
   - prepare_go
   - lint
