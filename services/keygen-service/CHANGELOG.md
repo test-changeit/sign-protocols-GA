@@ -1,5 +1,19 @@
 # @rosen-bridge/keygen-service
 
+## 1.0.1
+
+### Patch Changes
+
+- Remove dependencies
+  - cross-env@7.0.3
+  - patch-package@6.5.1
+- Add dependencies
+  - @libp2p/peer-id-factory@1.0.18
+  - it-length-prefixed@8.0.4
+  - it-map@2.0.0
+  - @types/node@22.18.0
+  - typescript@5.8.3"
+
 ## 1.0.0
 
 ### Major Changes

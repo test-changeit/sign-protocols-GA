@@ -1,5 +1,15 @@
 # @rosen-bridge/tss
 
+## 5.0.1
+
+### Patch Changes
+
+- Remove dependency @noble/hashes@1.7.1
+- Update dependencies
+  - @rosen-bridge/detection@2.0.1
+  - @rosen-bridge/encryption@1.0.1
+  - @rosen-bridge/communication@2.0.1
+
 ## 5.0.0
 
 ### Major Changes

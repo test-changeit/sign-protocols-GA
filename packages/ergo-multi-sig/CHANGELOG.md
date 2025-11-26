@@ -1,5 +1,19 @@
 # @rosen-bridge/ergo-multi-sig
 
+## 2.1.0
+
+### Minor Changes
+
+- Handles semaphore better to avoid locks.
+
+### Patch Changes
+
+- Remove dependency lodash-es@4.17.21
+- Update dependencies
+  - @rosen-bridge/detection@2.0.1
+  - @rosen-bridge/encryption@1.0.1
+  - @rosen-bridge/communication@2.0.1
+
 ## 2.0.0
 
 ### Major Changes

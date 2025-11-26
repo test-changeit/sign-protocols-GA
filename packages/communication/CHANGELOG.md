@@ -1,5 +1,12 @@
 # @rosen-bridge/communication
 
+## 2.0.1
+
+### Patch Changes
+
+- Update dependencies
+  - @rosen-bridge/encryption@1.0.1
+
 ## 2.0.0
 
 ### Major Changes

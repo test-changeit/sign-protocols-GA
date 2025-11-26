@@ -1,7 +1,7 @@
 {
   "name": "@rosen-bridge/keygen-service",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A service for managing the key generation ceremony",
   "repository": {
     "type": "git",
