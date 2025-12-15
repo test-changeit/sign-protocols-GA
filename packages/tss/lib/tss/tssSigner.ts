@@ -318,6 +318,17 @@ export abstract class TssSigner extends Communicator {
   ) => Promise<SignResult>;
 
   /**
+   * check if message is in sign
+   * @param message
+   */
+  isInSign = async (message: string): Promise<boolean> => {
+    if (this.getSign(message, true)) {
+      return true;
+    }
+    return false;
+  };
+
+  /**
    * process new message
    * @param messageType
    * @param payload
