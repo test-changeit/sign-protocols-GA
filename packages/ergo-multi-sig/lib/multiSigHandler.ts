@@ -214,6 +214,15 @@ export class MultiSigHandler extends Communicator {
   };
 
   /**
+   * check if message is in sign
+   * @param txId transaction id
+   */
+  public isInSign = async (txId: string): Promise<boolean> => {
+    const tx = this.transactions.get(txId);
+    return tx !== undefined;
+  };
+
+  /**
    * getting prover that makes with guard secrets
    */
   private getProver = (): wasm.Wallet => {
