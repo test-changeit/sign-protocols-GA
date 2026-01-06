@@ -1,6 +1,6 @@
 {
   "name": "@rosen-bridge/tss",
-  "version": "5.0.1",
+  "version": "5.1.0",
   "description": "TypeScript library for building and validating TSS signatures.",
   "keywords": [
     "rosen"
@@ -36,11 +36,11 @@
   },
   "dependencies": {
     "@noble/ed25519": "^2.2.3",
-    "@rosen-bridge/abstract-logger": "^3.0.1",
-    "@rosen-bridge/communication": "^2.0.1",
-    "@rosen-bridge/detection": "^2.0.1",
+    "@rosen-bridge/abstract-logger": "^4.0.0",
+    "@rosen-bridge/communication": "^2.0.2",
+    "@rosen-bridge/detection": "^2.0.2",
     "@rosen-bridge/encryption": "^1.0.1",
-    "@rosen-clients/rate-limited-axios": "^1.1.0",
+    "@rosen-clients/rate-limited-axios": "^1.1.1",
     "await-semaphore": "^0.1.3",
     "secp256k1": "^5.0.1"
   },

@@ -1,5 +1,14 @@
 # @rosen-bridge/keygen-service
 
+## 1.0.2
+
+### Patch Changes
+
+- Update dependencies
+  - @rosen-bridge/abstract-logger@4.0.0
+  - @rosen-bridge/winston-logger@3.0.0
+  - @rosen-clients/rate-limited-axios@1.1.1
+
 ## 1.0.1
 
 ### Patch Changes

@@ -1,10 +1,10 @@
-import { DefaultLoggerFactory } from '@rosen-bridge/abstract-logger';
+import { DefaultLogger } from '@rosen-bridge/abstract-logger';
 import axios from '@rosen-clients/rate-limited-axios';
 
 import CommunicationConfig from './communicationConfig';
 import { SubscribeChannelWithURL } from './interfaces';
 
-const logger = DefaultLoggerFactory.getInstance().getLogger(import.meta.url);
+const logger = DefaultLogger.getInstance().child(import.meta.url);
 
 const apiCallBack: SubscribeChannelWithURL['func'] = (
   msg,

@@ -1,5 +1,18 @@
 # @rosen-bridge/ergo-multi-sig
 
+## 2.2.0
+
+### Minor Changes
+
+- Add `isInSign` function to `MultiSigHandler` which checks if a transaction is in sign by it's ID
+
+### Patch Changes
+
+- Update dependencies
+  - @rosen-bridge/abstract-logger@4.0.0
+  - @rosen-bridge/communication@2.0.2
+  - @rosen-bridge/detection@2.0.2
+
 ## 2.1.0
 
 ### Minor Changes

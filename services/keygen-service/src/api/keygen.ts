@@ -1,10 +1,10 @@
 import { Type } from '@sinclair/typebox';
 
-import { DefaultLoggerFactory } from '@rosen-bridge/abstract-logger';
+import { DefaultLogger } from '@rosen-bridge/abstract-logger';
 
 import { FastifySeverInstance, MessageResponseSchema } from './schemas';
 
-const logger = DefaultLoggerFactory.getInstance().getLogger(import.meta.url);
+const logger = DefaultLogger.getInstance().child(import.meta.url);
 
 /**
  * setups TSS keygen completed route
