@@ -4,13 +4,13 @@ import swaggerUi from '@fastify/swagger-ui';
 import { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import fastify, { FastifyInstance } from 'fastify';
 
-import { DefaultLoggerFactory } from '@rosen-bridge/abstract-logger';
+import { DefaultLogger } from '@rosen-bridge/abstract-logger';
 
 import { keygenRoute } from '../api/keygen';
 import { p2pRoutes } from '../api/p2p';
 import Configs from '../configs/configs';
 
-const logger = DefaultLoggerFactory.getInstance().getLogger(import.meta.url);
+const logger = DefaultLogger.getInstance().child(import.meta.url);
 
 /**
  * initialize api server

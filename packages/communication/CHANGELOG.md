@@ -1,5 +1,11 @@
 # @rosen-bridge/communication
 
+## 2.0.2
+
+### Patch Changes
+
+- Update dependency @rosen-bridge/abstract-logger@4.0.0
+
 ## 2.0.1
 
 ### Patch Changes

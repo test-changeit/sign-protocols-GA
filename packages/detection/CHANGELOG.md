@@ -1,5 +1,13 @@
 # @rosen-bridge/detection
 
+## 2.0.2
+
+### Patch Changes
+
+- Update dependencies
+  - @rosen-bridge/abstract-logger@4.0.0
+  - @rosen-bridge/communication@2.0.2
+
 ## 2.0.1
 
 ### Patch Changes

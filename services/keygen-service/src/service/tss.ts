@@ -1,14 +1,14 @@
 import { spawn } from 'child_process';
 import * as crypto from 'crypto';
 
-import { DefaultLoggerFactory } from '@rosen-bridge/abstract-logger';
+import { DefaultLogger } from '@rosen-bridge/abstract-logger';
 import axios from '@rosen-clients/rate-limited-axios';
 
 import CommunicationConfig from '../communication/communicationConfig';
 import Dialer from '../communication/dialer';
 import Configs from '../configs/configs';
 
-const logger = DefaultLoggerFactory.getInstance().getLogger(import.meta.url);
+const logger = DefaultLogger.getInstance().child(import.meta.url);
 
 class Tss {
   private static instance: Tss;

@@ -22,7 +22,7 @@ import {
   toString as uint8ArrayToString,
 } from 'uint8arrays';
 
-import { DefaultLoggerFactory } from '@rosen-bridge/abstract-logger';
+import { DefaultLogger } from '@rosen-bridge/abstract-logger';
 import JsonBigInt from '@rosen-bridge/json-bigint';
 
 import { NotStartedDialerNodeError } from '../utils/errors';
@@ -37,7 +37,7 @@ import {
   SubscribeChannelWithURL,
 } from './interfaces';
 
-const logger = DefaultLoggerFactory.getInstance().getLogger(import.meta.url);
+const logger = DefaultLogger.getInstance().child(import.meta.url);
 
 class Dialer {
   private static instance: Dialer;
