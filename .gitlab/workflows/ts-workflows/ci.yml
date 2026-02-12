@@ -23,4 +23,4 @@ include:
         - npm run lint:check --workspace packages
         - npm run lint:check --workspace services/keygen-service
       test_script:
-        - npm run test --workspace packages
+        - npm run coverage --workspace packages
