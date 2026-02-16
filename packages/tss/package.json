@@ -45,10 +45,7 @@
     "secp256k1": "^5.0.1"
   },
   "devDependencies": {
-    "@types/secp256k1": "^4.0.7",
-    "@vitest/coverage-istanbul": "^3.1.4",
-    "tsx": "^4.20.5",
-    "vitest": "^3.1.4"
+    "@types/secp256k1": "^4.0.7"
   },
   "engines": {
     "node": ">=22.18.0",
