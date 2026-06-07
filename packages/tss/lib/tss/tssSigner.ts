@@ -819,7 +819,7 @@ export abstract class TssSigner extends Communicator {
    * @param id
    * @returns publicKey | undefined
    */
-  protected getPk = async (id: PublicKeyID): Promise<string | undefined> => {
+  getPk = async (id: PublicKeyID): Promise<string | undefined> => {
     this.logger.debug(
       `getPk requesting tss-api to get public key. crypto: ${this.signingCrypto}`,
     );
