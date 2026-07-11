@@ -1,7 +1,7 @@
 {
   "name": "@rosen-bridge/keygen-service",
   "private": true,
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "A service for managing the key generation ceremony",
   "repository": {
     "type": "git",
@@ -38,8 +38,8 @@
     "@multiformats/multiaddr": "^11.0.3",
     "@rosen-bridge/abstract-logger": "^4.0.0",
     "@rosen-bridge/json-bigint": "^1.1.0",
-    "@rosen-bridge/winston-logger": "^3.0.0",
-    "@rosen-clients/rate-limited-axios": "^1.1.1",
+    "@rosen-bridge/winston-logger": "^3.1.0",
+    "@rosen-clients/rate-limited-axios": "^2.0.1",
     "@sinclair/typebox": "^0.30.4",
     "config": "^3.3.7",
     "fastify": "^4.18.0",

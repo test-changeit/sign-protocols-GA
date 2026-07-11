@@ -1,5 +1,11 @@
 # @rosen-bridge/ergo-multi-sig
 
+## 2.2.1
+
+### Patch Changes
+
+- Replace the `await-semaphore` dependency with `@rosen-bridge/semaphore`
+
 ## 2.2.0
 
 ### Minor Changes

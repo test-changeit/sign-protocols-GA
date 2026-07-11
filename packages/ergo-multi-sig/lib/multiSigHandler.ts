@@ -1,9 +1,9 @@
-import { Semaphore } from 'await-semaphore';
 import * as wasm from 'ergo-lib-wasm-nodejs';
 
 import { AbstractLogger, DummyLogger } from '@rosen-bridge/abstract-logger';
 import { Communicator } from '@rosen-bridge/communication';
 import { GuardDetection } from '@rosen-bridge/detection';
+import { Semaphore } from '@rosen-bridge/semaphore';
 
 import { turnTime as defaultTurnTime } from './const';
 import { MultiSigUtils } from './multiSigUtils';
