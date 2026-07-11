@@ -1,8 +1,7 @@
-import { Mutex } from 'await-semaphore';
-
 import { DummyLogger } from '@rosen-bridge/abstract-logger';
 import { Communicator } from '@rosen-bridge/communication';
 import { GuardDetection, ActiveGuard } from '@rosen-bridge/detection';
+import { Mutex } from '@rosen-bridge/semaphore';
 import axios, { Axios, AxiosResponse } from '@rosen-clients/rate-limited-axios';
 
 import {

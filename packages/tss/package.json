@@ -40,8 +40,8 @@
     "@rosen-bridge/communication": "^2.0.2",
     "@rosen-bridge/detection": "^2.0.2",
     "@rosen-bridge/encryption": "^1.0.1",
-    "@rosen-clients/rate-limited-axios": "^1.1.1",
-    "await-semaphore": "^0.1.3",
+    "@rosen-bridge/semaphore": "^0.1.0",
+    "@rosen-clients/rate-limited-axios": "^2.0.1",
     "secp256k1": "^5.0.1"
   },
   "devDependencies": {
