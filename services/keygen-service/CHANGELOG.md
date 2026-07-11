@@ -5,8 +5,8 @@
 ### Patch Changes
 
 - Update dependencies
-  - @rosen-clients/rate-limited-axios@2.0.1
   - @rosen-bridge/winston-logger@3.1.0
+  - @rosen-clients/rate-limited-axios@2.0.1
 
 ## 1.0.2
 
