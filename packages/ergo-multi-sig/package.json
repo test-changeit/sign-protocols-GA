@@ -1,6 +1,6 @@
 {
   "name": "@rosen-bridge/ergo-multi-sig",
-  "version": "2.2.0",
+  "version": "2.2.1",
   "description": "multi signature protocol for ergo network",
   "repository": {
     "type": "git",

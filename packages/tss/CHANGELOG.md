@@ -1,5 +1,18 @@
 # @rosen-bridge/tss
 
+## 5.2.0
+
+### Minor Changes
+
+- Make the `TssSigner.getPk` function public
+
+### Patch Changes
+
+- Replace the `await-semaphore` dependency with `@rosen-bridge/semaphore`
+
+  Update dependencies
+  - @rosen-clients/rate-limited-axios@2.0.1
+
 ## 5.1.0
 
 ### Minor Changes
