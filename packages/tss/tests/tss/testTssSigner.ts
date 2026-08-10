@@ -182,14 +182,22 @@ export class TestTssSigner extends TssSigner {
    * @param signature
    * @param chainCode
    * @param derivationPath
+   * @param signatureRecovery
    */
   callGetPkAndVerifySignature = async (
     message: string,
     signature: string,
     chainCode: string,
     derivationPath?: number[],
+    signatureRecovery?: string,
   ) =>
-    this.getPkAndVerifySignature(message, signature, chainCode, derivationPath);
+    this.getPkAndVerifySignature(
+      message,
+      signature,
+      chainCode,
+      derivationPath,
+      signatureRecovery,
+    );
 
   /**
    * handles signing data callback in case of successful sign
