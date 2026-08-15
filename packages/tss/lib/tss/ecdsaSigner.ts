@@ -84,19 +84,81 @@ export class EcdsaSigner extends TssSigner {
   };
 
   /**
-   * verify message signature
+   * recover the signer's public key from a signed message digest and its recovery id
+   * returns undefined if the public key can not be recovered, e.g. an invalid recovery id
+   * @param message hex string
+   * @param signature hex string
+   * @param signatureRecovery hex encoded recovery id, as returned alongside `signature`
+   */
+  protected recoverPublicKey = (
+    message: string,
+    signature: string,
+    signatureRecovery: string,
+  ): string | undefined => {
+    try {
+      const msg = Buffer.from(message, 'hex');
+      const sign = Buffer.from(signature, 'hex');
+      const recoveryId = parseInt(signatureRecovery, 16);
+      const recoveredPublicKey = pkg.ecdsaRecover(sign, recoveryId, msg, true);
+      return Buffer.from(recoveredPublicKey).toString('hex');
+    } catch (e) {
+      this.logger.warn(
+        `failed to recover public key from signature [${signature}] and signatureRecovery [${signatureRecovery}]: ${e}`,
+      );
+      return undefined;
+    }
+  };
+
+  /**
+   * verify message signature, and that signatureRecovery recovers to signerPublicKey
+   * returns false when signatureRecovery is not provided, since a genuine ECDSA
+   * signature produced by tss-api always includes a recovery id
    * @param message hex string
    * @param signature hex string
    * @param signerPublicKey hex string
+   * @param signatureRecovery hex encoded recovery id
    */
   verify = async (
     message: string,
     signature: string,
     signerPublicKey: string,
+    signatureRecovery?: string,
   ): Promise<boolean> => {
+    const baseError = `signature is invalid [signature:${signature}, message:${message}, pk:${signerPublicKey}]`;
     const msg = Buffer.from(message, 'hex');
     const sign = Buffer.from(signature, 'hex');
     const publicKey = Buffer.from(signerPublicKey, 'hex');
-    return pkg.ecdsaVerify(sign, msg, publicKey);
+    if (!pkg.ecdsaVerify(sign, msg, publicKey)) {
+      this.logger.debug(baseError);
+      return false;
+    }
+
+    if (signatureRecovery === undefined) {
+      this.logger.debug(`${baseError}: signatureRecovery is undefined`);
+      return false;
+    }
+
+    const recoveredPublicKey = this.recoverPublicKey(
+      message,
+      signature,
+      signatureRecovery,
+    );
+    if (recoveredPublicKey === undefined) {
+      this.logger.debug(
+        `${baseError}: failed to recover Pk from the signature and message`,
+      );
+      return false;
+    }
+
+    if (recoveredPublicKey !== signerPublicKey) {
+      this.logger.debug(
+        `${baseError}: recovered Pk and signer Pk are not equal [${recoveredPublicKey} != ${signerPublicKey}]`,
+      );
+      return false;
+    }
+    this.logger.trace(
+      `signature [${signature}] with recovery [${signatureRecovery}] is verified on message [${message}] and public key [${signerPublicKey}]`,
+    );
+    return true;
   };
 }

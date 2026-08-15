@@ -1569,6 +1569,7 @@ describe('TssSigner', () => {
         'signature',
         'chainCode',
         undefined,
+        'signatureRecovery',
       );
 
       // wrappedHandleSuccessfulSign should have been called
@@ -1629,6 +1630,7 @@ describe('TssSigner', () => {
         'signature',
         'chainCode',
         undefined,
+        'signatureRecovery',
       );
 
       // wrappedHandleSuccessfulSign should not have been called
@@ -1850,15 +1852,26 @@ describe('TssSigner', () => {
      * @target GuardDetection.handleSignData should throw error when status is success and no signature passed
      * @dependencies
      * @scenario
+     * - mock getPkAndVerifySignature
      * - add sign instance to list
      * - call handleSignData with valid message without signature
      * @expected
      * - throw exception
+     * - getPkAndVerifySignature should not have been called
      */
     it('should throw error when status is success and no signature passed', async () => {
+      // mock getPkAndVerifySignature
+      const mockedGetPkAndVerifySignature = vi
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .spyOn(signer as any, 'getPkAndVerifySignature')
+        .mockResolvedValue(true);
+
       await expect(async () =>
         signer.handleSignData(StatusEnum.Success, 'valid signing data'),
       ).rejects.toThrow();
+
+      // getPkAndVerifySignature should not have been called
+      expect(mockedGetPkAndVerifySignature).not.toHaveBeenCalled();
     });
 
     /**
@@ -1866,18 +1879,37 @@ describe('TssSigner', () => {
      * @dependencies
      * @scenario
      * - add sign instance to list
+     * - mock getPkAndVerifySignature to resolve true
      * - call handleSignData
      * @expected
+     * - getPkAndVerifySignature should have been called with message, signature, chainCode, derivationPath and signatureRecovery
      * - callback function called once
      * - callback function called with true and undefined as message and signature
      */
     it('should call callback function with success status and signature', async () => {
+      // mock getPkAndVerifySignature to resolve true
+      const mockedGetPkAndVerifySignature = vi
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .spyOn(signer as any, 'getPkAndVerifySignature')
+        .mockResolvedValue(true);
+
       await signer.handleSignData(
         StatusEnum.Success,
         'valid signing data',
         'signature',
         'signature recovery',
       );
+
+      // getPkAndVerifySignature should have been called with message, signature, chainCode, derivationPath and signatureRecovery
+      expect(mockedGetPkAndVerifySignature).toHaveBeenCalledTimes(1);
+      expect(mockedGetPkAndVerifySignature).toHaveBeenCalledWith(
+        'valid signing data',
+        'signature',
+        'chainCode',
+        undefined,
+        'signature recovery',
+      );
+
       expect(callback).toHaveBeenCalledTimes(1);
       expect(callback).toHaveBeenCalledWith(
         true,
@@ -1885,6 +1917,40 @@ describe('TssSigner', () => {
         'signature',
         'signature recovery',
       );
+    });
+
+    /**
+     * @target GuardDetection.handleSignData should not call callback and keep sign in queue when signature verification fails
+     * @dependencies
+     * @scenario
+     * - add sign instance to list
+     * - mock getPkAndVerifySignature to resolve false
+     * - call handleSignData with Success status
+     * @expected
+     * - callback function should not have been called
+     * - sign should still be present in signing queue
+     */
+    it('should not call callback and keep sign in queue when signature verification fails', async () => {
+      // mock getPkAndVerifySignature to resolve false
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      vi.spyOn(signer as any, 'getPkAndVerifySignature').mockResolvedValue(
+        false,
+      );
+
+      await signer.handleSignData(
+        StatusEnum.Success,
+        'valid signing data',
+        'signature',
+        'signature recovery',
+      );
+
+      // callback function should not have been called
+      expect(callback).not.toHaveBeenCalled();
+
+      // sign should still be present in signing queue
+      const signs = signer.getSigns();
+      expect(signs.length).toEqual(1);
+      expect(signs[0].msg).toEqual('valid signing data');
     });
 
     /**
@@ -1914,11 +1980,18 @@ describe('TssSigner', () => {
      * @dependencies
      * @scenario
      * - add sign instance to list
+     * - mock getPkAndVerifySignature to resolve true
      * - call handleSignData
      * @expected
      * - signing list must be empty
      */
     it('should remove sign element from signing queue', async () => {
+      // mock getPkAndVerifySignature to resolve true
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      vi.spyOn(signer as any, 'getPkAndVerifySignature').mockResolvedValue(
+        true,
+      );
+
       await signer.handleSignData(
         StatusEnum.Success,
         'valid signing data',
@@ -2258,7 +2331,47 @@ describe('TssSigner', () => {
         derivationPath: [],
       });
       expect(mockedVerify).toHaveBeenCalledTimes(1);
-      expect(mockedVerify).toHaveBeenCalledWith('msg', 'signature', 'pk');
+      expect(mockedVerify).toHaveBeenCalledWith(
+        'msg',
+        'signature',
+        'pk',
+        undefined,
+      );
+      expect(verified).toBe(true);
+    });
+
+    /**
+     * @target TssSigner.getPkAndVerifySignature should pass signatureRecovery through to verify when provided
+     * @dependencies
+     * @scenario
+     * - mock getPk
+     * - mock verify to return true
+     * - call getPkAndVerifySignature with a signatureRecovery value
+     * @expected
+     * - verify should have been called with message, signature, public key and signatureRecovery
+     * - getPkAndVerifySignature should have returned true
+     */
+    it('should pass signatureRecovery through to verify when provided', async () => {
+      // mock getPk
+      vi
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .spyOn(signer as any, 'getPk')
+        .mockResolvedValue('pk');
+
+      // mock verify to return true
+      const mockedVerify = vi.spyOn(signer, 'verify').mockResolvedValue(true);
+
+      // call getPkAndVerifySignature with a signatureRecovery value
+      const verified = await signer.callGetPkAndVerifySignature(
+        'msg',
+        'signature',
+        'chainCode',
+        undefined,
+        '01',
+      );
+
+      expect(mockedVerify).toHaveBeenCalledTimes(1);
+      expect(mockedVerify).toHaveBeenCalledWith('msg', 'signature', 'pk', '01');
       expect(verified).toBe(true);
     });
 
@@ -2298,7 +2411,12 @@ describe('TssSigner', () => {
         derivationPath: [],
       });
       expect(mockedVerify).toHaveBeenCalledTimes(1);
-      expect(mockedVerify).toHaveBeenCalledWith('msg', 'signature', 'pk');
+      expect(mockedVerify).toHaveBeenCalledWith(
+        'msg',
+        'signature',
+        'pk',
+        undefined,
+      );
       expect(verified).toBe(false);
     });
   });

@@ -194,7 +194,12 @@ export abstract class TssSigner extends Communicator {
       this.lastUpdateRound = round;
       this.logger.debug('processing signs to start');
       for (const sign of this.signs.slice(0, this.signPerRoundLimit)) {
-        if (sign.posted) continue;
+        if (sign.posted) {
+          this.logger.debug(
+            `skipped signing message [${sign.msg}] due to being posted`,
+          );
+          continue;
+        }
         this.logger.debug(`new sign found with [${sign.msg}]`);
         const payload: SignRequestPayload = {
           msg: sign.msg,
@@ -666,6 +671,7 @@ export abstract class TssSigner extends Communicator {
       payload.signature,
       sign.chainCode,
       sign.derivationPath,
+      payload.signatureRecovery,
     );
 
     if (signVerified === false) {
@@ -816,7 +822,7 @@ export abstract class TssSigner extends Communicator {
   /**
    * request tss-api for a public-key using an identifier
    * @param id
-   * @returns publicKey | undefined
+   * @returns the compressed public key, or undefined in case of failure
    */
   getPk = async (id: PublicKeyID): Promise<string | undefined> => {
     this.logger.debug(
@@ -857,7 +863,27 @@ export abstract class TssSigner extends Communicator {
     if (sign === undefined || !sign.posted) {
       throw Error('Invalid message');
     }
+
     if (status === StatusEnum.Success) {
+      if (!signature) {
+        throw Error('signature is required when sign was successful');
+      }
+
+      const signVerified = await this.getPkAndVerifySignature(
+        sign.msg,
+        signature,
+        sign.chainCode,
+        sign.derivationPath,
+        signatureRecovery,
+      );
+
+      if (signVerified === false) {
+        this.logger.warn(
+          `verification of trusted signature [${signature}] with message [${sign.msg}] is failed`,
+        );
+        return;
+      }
+
       await this.wrappedHandleSuccessfulSign(
         sign,
         signature,
@@ -900,17 +926,19 @@ export abstract class TssSigner extends Communicator {
   };
 
   /**
-   * verify message signature
+   * verify message signature, together with its signatureRecovery when provided
    * @param message
    * @param signature
    * @param chainCode
    * @param derivationPath
+   * @param signatureRecovery
    */
   protected getPkAndVerifySignature = async (
     message: string,
     signature: string,
     chainCode: string,
     derivationPath?: number[],
+    signatureRecovery?: string,
   ): Promise<boolean> => {
     const pkId: PublicKeyID = {
       chainCode: chainCode,
@@ -921,13 +949,12 @@ export abstract class TssSigner extends Communicator {
 
     if (publicKey === undefined) {
       this.logger.error(
-        `getPkAndVerifySignature: failed to get public key [${this.signingCrypto}] with chaincode [${chainCode}] and derivation path [${derivationPath}]`,
+        `failed to get public key [${this.signingCrypto}] with chaincode [${chainCode}] and derivation path [${derivationPath}]`,
       );
       return false;
     }
 
-    // TODO: also verify signatureRecovery. local:ergo/rosen-bridge/sign-protocols#31
-    return await this.verify(message, signature, publicKey);
+    return this.verify(message, signature, publicKey, signatureRecovery);
   };
 
   /**
@@ -935,10 +962,12 @@ export abstract class TssSigner extends Communicator {
    * @param message
    * @param signature
    * @param signerPublicKey
+   * @param signatureRecovery when provided, implementations should also verify it recovers to signerPublicKey
    */
   abstract verify: (
     message: string,
     signature: string,
     signerPublicKey: string,
+    signatureRecovery?: string,
   ) => Promise<boolean>;
 }
