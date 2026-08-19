@@ -13,7 +13,7 @@ const logger = DefaultLogger.getInstance().child(import.meta.url);
 class Tss {
   private static instance: Tss;
   protected static dialer: Dialer;
-  protected static trustKey: string;
+  protected static apiKey: string;
 
   protected constructor() {
     // do nothing.
@@ -29,15 +29,15 @@ class Tss {
   };
 
   /**
-   * @returns the trust key
+   * @returns the api key
    */
-  static getTrustKey = (): string => Tss.trustKey;
+  static getApiKey = (): string => Tss.apiKey;
 
   /**
    * runs tss binary file
    */
   protected static runBinary = (): void => {
-    Tss.trustKey = crypto.randomUUID();
+    Tss.apiKey = crypto.randomUUID();
     const args = [
       '-configFile',
       Configs.tssConfigPath,
@@ -45,8 +45,8 @@ class Tss {
       `http://${Configs.apiHost}:${Configs.apiPort}`,
       '-host',
       `${Configs.tssUrl}:${Configs.tssPort}`,
-      '-trustKey',
-      Tss.trustKey,
+      '-apiKey',
+      Tss.apiKey,
     ];
     spawn(Configs.tssExecutionPath, args, {
       detached: false,
