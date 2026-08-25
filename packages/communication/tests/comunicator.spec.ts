@@ -5,6 +5,8 @@ import { EdDSA } from '@rosen-bridge/encryption';
 import { TestCommunicator } from './testCommunicator';
 
 describe('Communicator', () => {
+  // must match TestCommunicator's protocolVersion
+  const protocolVersion = '1.0';
   let guardMessageEncs: Array<EdDSA>;
   let guardPks: Array<string>;
   const payload = { foo: 'bar' };
@@ -117,7 +119,7 @@ describe('Communicator', () => {
       const currentTime = 1685683141;
       const publicKey = await guardMessageEncs[1].getPk();
       const sign = await guardMessageEncs[1].sign(
-        `${JSON.stringify(payload)}${currentTime}${publicKey}`,
+        `${JSON.stringify(payload)}${currentTime}${publicKey}${protocolVersion}`,
       );
       vi.spyOn(Date, 'now').mockReturnValue(currentTime * 1000);
       await communicator.testSendMessage('msg', payload, []);
@@ -128,6 +130,7 @@ describe('Communicator', () => {
         publicKey: publicKey,
         timestamp: currentTime,
         index: 1,
+        version: protocolVersion,
       };
       expect(mockSubmit).toHaveBeenCalledTimes(1);
       const callArgs = JSON.parse(mockSubmit.mock.calls[0][0]);
@@ -161,7 +164,7 @@ describe('Communicator', () => {
       const currentTime = 1685683142;
       const publicKey = await guardMessageEncs[2].getPk();
       const sign = await guardMessageEncs[2].sign(
-        `${JSON.stringify(payload)}${currentTime}${publicKey}`,
+        `${JSON.stringify(payload)}${currentTime}${publicKey}${protocolVersion}`,
       );
       vi.spyOn(Date, 'now').mockReturnValue(currentTime * 1000);
       const message = {
@@ -171,6 +174,7 @@ describe('Communicator', () => {
         timestamp: currentTime,
         publicKey,
         index: 2,
+        version: protocolVersion,
       };
       await communicator.handleMessage(JSON.stringify(message), 'guardIndex2');
       expect(communicator.processMessage).toHaveBeenCalledTimes(1);
@@ -197,7 +201,7 @@ describe('Communicator', () => {
       const currentTime = 1685683143;
       const publicKey = await guardMessageEncs[2].getPk();
       const sign = await guardMessageEncs[2].sign(
-        `${JSON.stringify(payload)}${currentTime}${publicKey}`,
+        `${JSON.stringify(payload)}${currentTime}${publicKey}${protocolVersion}`,
       );
       vi.spyOn(Date, 'now').mockReturnValue(currentTime * 1000);
       const message = {
@@ -207,6 +211,7 @@ describe('Communicator', () => {
         timestamp: currentTime,
         sign: sign,
         index: 3,
+        version: protocolVersion,
       };
       await communicator.handleMessage(JSON.stringify(message), 'guardIndex2');
       expect(communicator.processMessage).toHaveBeenCalledTimes(0);
@@ -225,7 +230,7 @@ describe('Communicator', () => {
       const currentTime = 1685683144;
       const publicKey = await guardMessageEncs[2].getPk();
       const sign = await guardMessageEncs[2].sign(
-        `${JSON.stringify(payload)}${currentTime}${publicKey}`,
+        `${JSON.stringify(payload)}${currentTime}${publicKey}${protocolVersion}`,
       );
       vi.spyOn(Date, 'now').mockReturnValue(currentTime * 1000);
       const message = {
@@ -235,6 +240,7 @@ describe('Communicator', () => {
         timestamp: currentTime,
         sign: sign,
         index: 3,
+        version: protocolVersion,
       };
       await communicator.handleMessage(JSON.stringify(message), 'guardIndex2');
       expect(communicator.processMessage).toHaveBeenCalledTimes(0);
@@ -254,7 +260,7 @@ describe('Communicator', () => {
       const currentTime = 1685683145;
       const publicKey = await guardMessageEncs[2].getPk();
       const sign = await guardMessageEncs[2].sign(
-        `${JSON.stringify(payload)}${currentTime - 60001}${publicKey}`,
+        `${JSON.stringify(payload)}${currentTime - 60001}${publicKey}${protocolVersion}`,
       );
       vi.spyOn(Date, 'now').mockReturnValue(currentTime * 1000);
       const message = {
@@ -264,6 +270,66 @@ describe('Communicator', () => {
         timestamp: currentTime - 61,
         sign: sign,
         index: 2,
+        version: protocolVersion,
+      };
+      await communicator.handleMessage(JSON.stringify(message), 'guardIndex2');
+      expect(communicator.processMessage).toHaveBeenCalledTimes(0);
+    });
+
+    /**
+     * @target Communicator.handleMessage should not call processMessage when protocol version differs
+     * @dependencies
+     * @scenario
+     * - generate a validly signed message with a mismatched protocol version
+     * - pass to handleMessage
+     * @expect
+     * - processMessage must not call
+     */
+    it('should not call processMessage when protocol version differs', async () => {
+      const currentTime = 1685683146;
+      const publicKey = await guardMessageEncs[2].getPk();
+      const otherVersion = `${protocolVersion}-other`;
+      const sign = await guardMessageEncs[2].sign(
+        `${JSON.stringify(payload)}${currentTime}${publicKey}${otherVersion}`,
+      );
+      vi.spyOn(Date, 'now').mockReturnValue(currentTime * 1000);
+      const message = {
+        type: 'message',
+        payload: payload,
+        publicKey,
+        timestamp: currentTime,
+        sign: sign,
+        index: 2,
+        version: otherVersion,
+      };
+      await communicator.handleMessage(JSON.stringify(message), 'guardIndex2');
+      expect(communicator.processMessage).toHaveBeenCalledTimes(0);
+    });
+
+    /**
+     * @target Communicator.handleMessage should not call processMessage when the version field is tampered after signing
+     * @dependencies
+     * @scenario
+     * - generate a message signed with the current protocol version
+     * - rewrite its version field to a different value before passing to handleMessage
+     * @expect
+     * - processMessage must not call, since the signature no longer matches the (signed) version
+     */
+    it('should not call processMessage when the version field is tampered with after signing', async () => {
+      const currentTime = 1685683147;
+      const publicKey = await guardMessageEncs[2].getPk();
+      const sign = await guardMessageEncs[2].sign(
+        `${JSON.stringify(payload)}${currentTime}${publicKey}${protocolVersion}`,
+      );
+      vi.spyOn(Date, 'now').mockReturnValue(currentTime * 1000);
+      const message = {
+        type: 'message',
+        payload: payload,
+        publicKey,
+        timestamp: currentTime,
+        sign: sign,
+        index: 2,
+        version: `${protocolVersion}-tampered`,
       };
       await communicator.handleMessage(JSON.stringify(message), 'guardIndex2');
       expect(communicator.processMessage).toHaveBeenCalledTimes(0);

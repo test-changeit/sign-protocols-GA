@@ -20,6 +20,10 @@ import {
 } from './types';
 
 export class MultiSigHandler extends Communicator {
+  /**
+   * version of the ergo multi-sig protocol's message envelope and semantics
+   */
+  protected readonly protocolVersion = '1.0';
   protected logger: AbstractLogger;
   private readonly multiSigUtilsInstance: MultiSigUtils;
   private readonly transactions: Map<string, TxQueued>;

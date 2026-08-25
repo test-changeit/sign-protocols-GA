@@ -16,6 +16,14 @@ export abstract class Communicator {
   protected messageValidDuration: number;
 
   /**
+   * version of this protocol's message envelope and signing scheme, defined
+   * by each class extending Communicator. Bump it only when this protocol's
+   * wire format or message semantics change, not on every package release.
+   * messages from a mismatched version are rejected in handleMessage.
+   */
+  protected abstract readonly protocolVersion: string;
+
+  /**
    * get current timestamp in seconds
    */
   protected getDate = () => Math.floor(Date.now() / 1000);
@@ -54,14 +62,16 @@ export abstract class Communicator {
    * @param payload
    * @param timestamp
    * @param publicKey
+   * @param version protocol version of the class that produced/received this payload
    */
   static generatePayloadToSign = (
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     payload: any,
     timestamp: number,
     publicKey: string,
+    version: string,
   ) => {
-    return `${JSON.stringify(payload)}${timestamp}${publicKey}`;
+    return `${JSON.stringify(payload)}${timestamp}${publicKey}${version}`;
   };
 
   /**
@@ -73,7 +83,12 @@ export abstract class Communicator {
   signPayload = async (payload: any, timestamp: number) => {
     const publicKey = await this.messageEnc.getPk();
     return await this.messageEnc.sign(
-      Communicator.generatePayloadToSign(payload, timestamp, publicKey),
+      Communicator.generatePayloadToSign(
+        payload,
+        timestamp,
+        publicKey,
+        this.protocolVersion,
+      ),
     );
   };
 
@@ -107,6 +122,7 @@ export abstract class Communicator {
       timestamp,
       sign: payloadSign,
       index: await this.getIndex(),
+      version: this.protocolVersion,
     };
     this.submitMessage(JSON.stringify(message), peers);
   };
@@ -135,6 +151,13 @@ export abstract class Communicator {
       message,
     ) as CommunicationMessage;
     const guardPk = this.guardPks[msg.index];
+    if (msg.version !== this.protocolVersion) {
+      this.logger.warn(
+        `Invalid message. Protocol version mismatch (received [${msg.version}], expected [${this.protocolVersion}])`,
+      );
+      this.logger.debug(message);
+      return;
+    }
     if (this.getDate() - this.messageValidDuration > msg.timestamp) {
       this.logger.warn('Invalid message. message timed out');
       this.logger.debug(message);
@@ -153,6 +176,7 @@ export abstract class Communicator {
           msg.payload,
           msg.timestamp,
           msg.publicKey,
+          msg.version,
         ),
         msg.sign,
         guardPk,

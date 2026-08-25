@@ -22,6 +22,10 @@ import {
 } from './interfaces/types';
 
 export class GuardDetection extends Communicator {
+  /**
+   * version of the guard detection protocol's message envelope and semantics
+   */
+  protected readonly protocolVersion = '1.0';
   protected guardsInfo: Array<GuardInfo> = [];
   protected readonly activeTimeout: number;
   protected needGuardThreshold: number;

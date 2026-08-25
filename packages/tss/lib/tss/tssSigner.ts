@@ -36,6 +36,12 @@ import {
 } from '../types/signer';
 
 export abstract class TssSigner extends Communicator {
+  /**
+   * version of the tss signing protocol's message envelope and semantics.
+   * shared by EcdsaSigner and EddsaSigner, which only differ in signing
+   * crypto, not in the message protocol itself.
+   */
+  protected readonly protocolVersion = '1.0';
   protected readonly axios: Axios;
   protected readonly callbackUrl: string;
   protected readonly signingCrypto: string;
@@ -770,6 +776,7 @@ export abstract class TssSigner extends Communicator {
               payload,
               timestamp,
               guard.publicKey,
+              this.protocolVersion,
             ),
             sign,
             guard.publicKey,
