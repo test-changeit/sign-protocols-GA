@@ -4,6 +4,7 @@ import { GuardDetection, ActiveGuard } from '@rosen-bridge/detection';
 import { Mutex } from '@rosen-bridge/semaphore';
 import axios, { Axios, AxiosResponse } from '@rosen-clients/rate-limited-axios';
 
+import packageJson from '../../package.json' with { type: 'json' };
 import {
   defaultThresholdTTL,
   defaultTimeoutDefault,
@@ -37,11 +38,12 @@ import {
 
 export abstract class TssSigner extends Communicator {
   /**
-   * version of the tss signing protocol's message envelope and semantics.
-   * shared by EcdsaSigner and EddsaSigner, which only differ in signing
-   * crypto, not in the message protocol itself.
+   * version of the tss signing protocol's message envelope and semantics,
+   * tied to this package's own version. shared by EcdsaSigner and
+   * EddsaSigner, which only differ in signing crypto, not in the message
+   * protocol itself.
    */
-  protected readonly protocolVersion = '1.0';
+  protected readonly protocolVersion = packageJson.version;
   protected readonly axios: Axios;
   protected readonly callbackUrl: string;
   protected readonly signingCrypto: string;

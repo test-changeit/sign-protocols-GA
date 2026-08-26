@@ -6,7 +6,7 @@ import { EncryptionHandler } from '@rosen-bridge/encryption';
 import { Communicator } from '../lib';
 
 export class TestCommunicator extends Communicator {
-  protected readonly protocolVersion = '1.0';
+  protected readonly protocolVersion = '1.0.0';
 
   constructor(
     signer: EncryptionHandler,

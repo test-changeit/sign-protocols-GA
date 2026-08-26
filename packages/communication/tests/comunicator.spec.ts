@@ -6,7 +6,7 @@ import { TestCommunicator } from './testCommunicator';
 
 describe('Communicator', () => {
   // must match TestCommunicator's protocolVersion
-  const protocolVersion = '1.0';
+  const protocolVersion = '1.0.0';
   let guardMessageEncs: Array<EdDSA>;
   let guardPks: Array<string>;
   const payload = { foo: 'bar' };
@@ -277,18 +277,18 @@ describe('Communicator', () => {
     });
 
     /**
-     * @target Communicator.handleMessage should not call processMessage when protocol version differs
+     * @target Communicator.handleMessage should not call processMessage when protocol major version differs
      * @dependencies
      * @scenario
-     * - generate a validly signed message with a mismatched protocol version
+     * - generate a validly signed message with a different major protocol version
      * - pass to handleMessage
      * @expect
      * - processMessage must not call
      */
-    it('should not call processMessage when protocol version differs', async () => {
+    it('should not call processMessage when protocol major version differs', async () => {
       const currentTime = 1685683146;
       const publicKey = await guardMessageEncs[2].getPk();
-      const otherVersion = `${protocolVersion}-other`;
+      const otherVersion = '2.0.0'; // different major than protocolVersion
       const sign = await guardMessageEncs[2].sign(
         `${JSON.stringify(payload)}${currentTime}${publicKey}${otherVersion}`,
       );
@@ -304,6 +304,36 @@ describe('Communicator', () => {
       };
       await communicator.handleMessage(JSON.stringify(message), 'guardIndex2');
       expect(communicator.processMessage).toHaveBeenCalledTimes(0);
+    });
+
+    /**
+     * @target Communicator.handleMessage should call processMessage when only the minor/patch protocol version differs
+     * @dependencies
+     * @scenario
+     * - generate a validly signed message whose version shares protocolVersion's major but differs in minor/patch
+     * - pass to handleMessage
+     * @expect
+     * - processMessage must be called
+     */
+    it('should call processMessage when only the minor/patch protocol version differs', async () => {
+      const currentTime = 1685683148;
+      const publicKey = await guardMessageEncs[2].getPk();
+      const otherVersion = `${protocolVersion.split('.')[0]}.9.9`; // same major, different minor/patch
+      const sign = await guardMessageEncs[2].sign(
+        `${JSON.stringify(payload)}${currentTime}${publicKey}${otherVersion}`,
+      );
+      vi.spyOn(Date, 'now').mockReturnValue(currentTime * 1000);
+      const message = {
+        type: 'message',
+        payload: payload,
+        publicKey,
+        timestamp: currentTime,
+        sign: sign,
+        index: 2,
+        version: otherVersion,
+      };
+      await communicator.handleMessage(JSON.stringify(message), 'guardIndex2');
+      expect(communicator.processMessage).toHaveBeenCalledOnce();
     });
 
     /**

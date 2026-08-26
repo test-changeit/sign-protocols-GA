@@ -4,7 +4,7 @@
     "outDir": "./dist",
     "types": ["node", "vitest/globals"]
   },
-  "include": ["tests", "lib"],
+  "include": ["tests", "lib", "package.json"],
   "references": [
     { "path": "../detection/tsconfig.build.json" },
     { "path": "../encryption/tsconfig.build.json" },

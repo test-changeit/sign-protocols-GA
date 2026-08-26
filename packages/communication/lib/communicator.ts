@@ -16,10 +16,14 @@ export abstract class Communicator {
   protected messageValidDuration: number;
 
   /**
-   * version of this protocol's message envelope and signing scheme, defined
-   * by each class extending Communicator. Bump it only when this protocol's
-   * wire format or message semantics change, not on every package release.
-   * messages from a mismatched version are rejected in handleMessage.
+   * semantic version (e.g. `2.0.2`) of this protocol's message envelope and
+   * signing scheme, defined by each class extending Communicator. Bump the
+   * major component only when this protocol's wire format or message
+   * semantics change in a way that's incompatible with older guards; minor
+   * and patch changes are assumed compatible. Messages from a peer whose
+   * major version differs are rejected in handleMessage. Classes typically
+   * set this to their own package.json version, e.g.
+   * `import packageJson from '../package.json' with { type: 'json' };`.
    */
   protected abstract readonly protocolVersion: string;
 
@@ -73,6 +77,14 @@ export abstract class Communicator {
   ) => {
     return `${JSON.stringify(payload)}${timestamp}${publicKey}${version}`;
   };
+
+  /**
+   * extract the major component of a semantic version string, e.g. `2` from
+   * `2.0.2`. Two protocol versions are considered compatible when their
+   * major component matches.
+   * @param version
+   */
+  static getMajorVersion = (version: string) => version.split('.')[0];
 
   /**
    * sign a payload before submit
@@ -151,7 +163,10 @@ export abstract class Communicator {
       message,
     ) as CommunicationMessage;
     const guardPk = this.guardPks[msg.index];
-    if (msg.version !== this.protocolVersion) {
+    if (
+      Communicator.getMajorVersion(msg.version) !==
+      Communicator.getMajorVersion(this.protocolVersion)
+    ) {
       this.logger.warn(
         `Invalid message. Protocol version mismatch (received [${msg.version}], expected [${this.protocolVersion}])`,
       );
