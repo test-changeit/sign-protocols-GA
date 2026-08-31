@@ -1,5 +1,17 @@
 # @rosen-bridge/ergo-multi-sig
 
+## 3.0.0
+
+### Major Changes
+
+- `MultiSigHandler` now declares a `protocolVersion`, taken from this package's own version and signed/enforced by `Communicator`
+
+### Patch Changes
+
+- Update dependencies
+  - @rosen-bridge/detection@3.0.0
+  - @rosen-bridge/communication@3.0.0
+
 ## 2.2.1
 
 ### Patch Changes

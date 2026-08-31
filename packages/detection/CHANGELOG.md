@@ -1,5 +1,16 @@
 # @rosen-bridge/detection
 
+## 3.0.0
+
+### Major Changes
+
+- `GuardDetection` now declares a `protocolVersion`, taken from this package's own version and signed/enforced by `Communicator`
+
+### Patch Changes
+
+- Update dependencies
+  - @rosen-bridge/communication@3.0.0
+
 ## 2.0.2
 
 ### Patch Changes
