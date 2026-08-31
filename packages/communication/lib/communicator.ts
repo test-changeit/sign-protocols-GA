@@ -3,6 +3,7 @@ import { EncryptionHandler } from '@rosen-bridge/encryption';
 
 import { guardMessageValidTimeoutDefault } from './const/const';
 import { CommunicationMessage } from './interfaces/types';
+import { getVersionSections } from './utils';
 
 export abstract class Communicator {
   protected logger: AbstractLogger;
@@ -77,14 +78,6 @@ export abstract class Communicator {
   ) => {
     return `${JSON.stringify(payload)}${timestamp}${publicKey}${version}`;
   };
-
-  /**
-   * extract the major component of a semantic version string, e.g. `2` from
-   * `2.0.2`. Two protocol versions are considered compatible when their
-   * major component matches.
-   * @param version
-   */
-  static getMajorVersion = (version: string) => version.split('.')[0];
 
   /**
    * sign a payload before submit
@@ -163,15 +156,18 @@ export abstract class Communicator {
       message,
     ) as CommunicationMessage;
     const guardPk = this.guardPks[msg.index];
-    if (
-      Communicator.getMajorVersion(msg.version) !==
-      Communicator.getMajorVersion(this.protocolVersion)
-    ) {
+    const messageVersions = getVersionSections(msg.version);
+    const currentVersions = getVersionSections(this.protocolVersion);
+    if (messageVersions.major !== currentVersions.major) {
       this.logger.warn(
         `Invalid message. Protocol version mismatch (received [${msg.version}], expected [${this.protocolVersion}])`,
       );
       this.logger.debug(message);
       return;
+    } else if (messageVersions.minor !== currentVersions.minor) {
+      this.logger.debug(
+        `Minor protocol version mismatch detected (received [${msg.version}], expected [${this.protocolVersion}])`,
+      );
     }
     if (this.getDate() - this.messageValidDuration > msg.timestamp) {
       this.logger.warn('Invalid message. message timed out');
