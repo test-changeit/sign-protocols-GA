@@ -1,6 +1,7 @@
 import { DummyLogger } from '@rosen-bridge/abstract-logger';
 import { Communicator } from '@rosen-bridge/communication';
 
+import packageJson from '../package.json' with { type: 'json' };
 import {
   guardHeartbeatTimeoutDefault,
   guardActiveTimeoutDefault,
@@ -22,6 +23,11 @@ import {
 } from './interfaces/types';
 
 export class GuardDetection extends Communicator {
+  /**
+   * version of the guard detection protocol's message envelope and semantics,
+   * tied to this package's own version
+   */
+  protected readonly protocolVersion = packageJson.version;
   protected guardsInfo: Array<GuardInfo> = [];
   protected readonly activeTimeout: number;
   protected needGuardThreshold: number;

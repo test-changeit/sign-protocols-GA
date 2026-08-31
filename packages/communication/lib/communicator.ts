@@ -3,6 +3,7 @@ import { EncryptionHandler } from '@rosen-bridge/encryption';
 
 import { guardMessageValidTimeoutDefault } from './const/const';
 import { CommunicationMessage } from './interfaces/types';
+import { getVersionSections } from './utils';
 
 export abstract class Communicator {
   protected logger: AbstractLogger;
@@ -14,6 +15,18 @@ export abstract class Communicator {
   protected guardPks: Array<string>;
   protected index = -1;
   protected messageValidDuration: number;
+
+  /**
+   * semantic version (e.g. `2.0.2`) of this protocol's message envelope and
+   * signing scheme, defined by each class extending Communicator. Bump the
+   * major component only when this protocol's wire format or message
+   * semantics change in a way that's incompatible with older guards; minor
+   * and patch changes are assumed compatible. Messages from a peer whose
+   * major version differs are rejected in handleMessage. Classes typically
+   * set this to their own package.json version, e.g.
+   * `import packageJson from '../package.json' with { type: 'json' };`.
+   */
+  protected abstract readonly protocolVersion: string;
 
   /**
    * get current timestamp in seconds
@@ -54,14 +67,16 @@ export abstract class Communicator {
    * @param payload
    * @param timestamp
    * @param publicKey
+   * @param version protocol version of the class that produced/received this payload
    */
   static generatePayloadToSign = (
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     payload: any,
     timestamp: number,
     publicKey: string,
+    version: string,
   ) => {
-    return `${JSON.stringify(payload)}${timestamp}${publicKey}`;
+    return `${JSON.stringify(payload)}${timestamp}${publicKey}${version}`;
   };
 
   /**
@@ -73,7 +88,12 @@ export abstract class Communicator {
   signPayload = async (payload: any, timestamp: number) => {
     const publicKey = await this.messageEnc.getPk();
     return await this.messageEnc.sign(
-      Communicator.generatePayloadToSign(payload, timestamp, publicKey),
+      Communicator.generatePayloadToSign(
+        payload,
+        timestamp,
+        publicKey,
+        this.protocolVersion,
+      ),
     );
   };
 
@@ -107,6 +127,7 @@ export abstract class Communicator {
       timestamp,
       sign: payloadSign,
       index: await this.getIndex(),
+      version: this.protocolVersion,
     };
     this.submitMessage(JSON.stringify(message), peers);
   };
@@ -135,6 +156,19 @@ export abstract class Communicator {
       message,
     ) as CommunicationMessage;
     const guardPk = this.guardPks[msg.index];
+    const messageVersions = getVersionSections(msg.version);
+    const currentVersions = getVersionSections(this.protocolVersion);
+    if (messageVersions.major !== currentVersions.major) {
+      this.logger.warn(
+        `Invalid message. Protocol version mismatch (received [${msg.version}], expected [${this.protocolVersion}])`,
+      );
+      this.logger.debug(message);
+      return;
+    } else if (messageVersions.minor !== currentVersions.minor) {
+      this.logger.debug(
+        `Minor protocol version mismatch detected (received [${msg.version}], expected [${this.protocolVersion}])`,
+      );
+    }
     if (this.getDate() - this.messageValidDuration > msg.timestamp) {
       this.logger.warn('Invalid message. message timed out');
       this.logger.debug(message);
@@ -153,6 +187,7 @@ export abstract class Communicator {
           msg.payload,
           msg.timestamp,
           msg.publicKey,
+          msg.version,
         ),
         msg.sign,
         guardPk,

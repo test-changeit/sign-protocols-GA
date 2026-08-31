@@ -5,6 +5,7 @@ import { Communicator } from '@rosen-bridge/communication';
 import { GuardDetection } from '@rosen-bridge/detection';
 import { Semaphore } from '@rosen-bridge/semaphore';
 
+import packageJson from '../package.json' with { type: 'json' };
 import { turnTime as defaultTurnTime } from './const';
 import { MultiSigUtils } from './multiSigUtils';
 import {
@@ -20,6 +21,11 @@ import {
 } from './types';
 
 export class MultiSigHandler extends Communicator {
+  /**
+   * version of the ergo multi-sig protocol's message envelope and semantics,
+   * tied to this package's own version
+   */
+  protected readonly protocolVersion = packageJson.version;
   protected logger: AbstractLogger;
   private readonly multiSigUtilsInstance: MultiSigUtils;
   private readonly transactions: Map<string, TxQueued>;
