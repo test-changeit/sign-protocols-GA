@@ -1,5 +1,19 @@
 # @rosen-bridge/tss
 
+## 6.0.0
+
+### Major Changes
+
+- `TssSigner` now declares a `protocolVersion`, taken from this package's own version and signed/enforced by `Communicator`
+
+### Patch Changes
+
+- Verify the signature (and, for ECDSA, its recovery id) against the chain's trusted public key before accepting a TSS sign result delivered via `handleSignData`
+- Add more logs
+- Update dependencies
+  - @rosen-bridge/detection@3.0.0
+  - @rosen-bridge/communication@3.0.0
+
 ## 5.2.0
 
 ### Minor Changes
