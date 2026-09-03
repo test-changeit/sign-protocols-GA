@@ -9,9 +9,12 @@ jobs:
   build:
     name: Build tss-api
     permissions: write-all
+    runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        os: [macos-latest, ubuntu-latest, windows-latest]
+        os: ${{ fromJSON(vars.OS_LIST || '["macos-latest", "ubuntu-latest", "windows-latest"]') }}
+        arch: ${{ fromJSON(vars.ARCH_LIST || '["amd64"]') }}
         go: [1.18.0]
         include:
           - os: macos-latest
@@ -26,16 +29,14 @@ jobs:
         shell: bash
         working-directory: ./services/tss-api
 
-    runs-on: ${{ matrix.os }}
-
     steps:
       - name: Checkout Current Branch
-        uses: actions/checkout@v2
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
       - name: Setup GoLang
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v7
         with:
           go-version: ${{ matrix.go }}
 
@@ -44,16 +45,24 @@ jobs:
         run: |
           match_version=$(echo "${{ github.ref_name }}" | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+')
           echo "appVersion=${match_version}" >> $GITHUB_OUTPUT
-          CGO_ENABLED=0 go build -trimpath -o bin/rosenTss-${{ matrix.platform }}-${match_version}${{ matrix.extension }}
+          
+          GOOS="linux"
+          if [ "${{ matrix.platform }}" = "macOS" ]; then
+            GOOS="darwin"
+          elif [ "${{ matrix.platform }}" = "windows" ]; then
+            GOOS="windows"
+          fi
+          
+          CGO_ENABLED=0 GOOS=${GOOS} GOARCH=${{ matrix.arch }} go build -trimpath -o bin/rosenTss-${{ matrix.platform }}-${{ matrix.arch }}-${match_version}${{ matrix.extension }}
           mkdir conf
           mv conf.env.sample conf/conf.env
 
       - name: Prepare Release File
         run: |
-          7z a rosenTss-${{ matrix.platform }}-${{ steps.build-version.outputs.appVersion }}.zip ./bin/rosenTss-${{ matrix.platform }}-${{ steps.build-version.outputs.appVersion }}${{ matrix.extension }} ./conf
+          7z a rosenTss-${{ matrix.platform }}-${{ matrix.arch }}-${{ steps.build-version.outputs.appVersion }}.zip ./bin/rosenTss-${{ matrix.platform }}-${{ matrix.arch }}-${{ steps.build-version.outputs.appVersion }}${{ matrix.extension }} ./conf
 
       - name: Upload Release File
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v3
         with:
           files: ./services/tss-api/rosenTss*.zip
         env:
