@@ -19,11 +19,14 @@ jobs:
         include:
           - os: macos-latest
             platform: macOS
+            goos: darwin
           - os: ubuntu-latest
             platform: linux
+            goos: linux
           - os: windows-latest
             platform: windows
             extension: '.exe'
+            goos: windows
     defaults:
       run:
         shell: bash
@@ -39,6 +42,7 @@ jobs:
         uses: actions/setup-go@v7
         with:
           go-version: ${{ matrix.go }}
+          cache-dependency-path: './services/tss-api/go.sum'
 
       - name: Run build and prepare target files
         id: build-version
@@ -46,14 +50,7 @@ jobs:
           match_version=$(echo "${{ github.ref_name }}" | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+')
           echo "appVersion=${match_version}" >> $GITHUB_OUTPUT
           
-          GOOS="linux"
-          if [ "${{ matrix.platform }}" = "macOS" ]; then
-            GOOS="darwin"
-          elif [ "${{ matrix.platform }}" = "windows" ]; then
-            GOOS="windows"
-          fi
-          
-          CGO_ENABLED=0 GOOS=${GOOS} GOARCH=${{ matrix.arch }} go build -trimpath -o bin/rosenTss-${{ matrix.platform }}-${{ matrix.arch }}-${match_version}${{ matrix.extension }}
+          CGO_ENABLED=0 GOOS=${{ matrix.goos }} GOARCH=${{ matrix.arch }} go build -trimpath -o bin/rosenTss-${{ matrix.platform }}-${{ matrix.arch }}-${match_version}${{ matrix.extension }}
           mkdir conf
           mv conf.env.sample conf/conf.env
 
